@@ -12,7 +12,7 @@ std::vector<char> move_builder_data(builder &b) {
 
     REQUIRE(p1 != p2);
 
-    std::fill(b.data.begin(), b.data.end(), 0);
+    std::fill(b.data.begin(), b.data.end(), 0xff);
 
     return result;
 }
@@ -107,18 +107,82 @@ TEST_CASE("nested struct")
     REQUIRE(l.b->y == 13);
 }
 
+
+TEST_CASE("single string") {
+    builder b;
+
+    {
+        b.add_string("Hello world!");
+    }
+
+    const auto data{move_builder_data(b)};
+    const string32 &s{as<string32>(data)};
+
+    REQUIRE(s.size() == 12);
+    REQUIRE(std::string_view{s} == "Hello world!");
+}
+
+
 TEST_CASE("strings")
 {
-    using StringArray = std::array<offset<pid::string<std::uint32_t>>, 4>;
+    using StringArray = std::array<offset<pid::string32>, 4>;
 
     builder b;
 
     {
-//        builder_offset<StringArray> offset = b.add<StringArray>();
+        builder_offset<StringArray> offset_array = b.add<StringArray>();
+        (*offset_array)[0] = b.add_string("");
+        (*offset_array)[1] = b.add_string("a");
+        (*offset_array)[2] = b.add_string("1234");
+        (*offset_array)[3] = b.add_string("UTF-8: Bäume");
+
     }
 
     const auto data{move_builder_data(b)};
     const StringArray &a{as<StringArray>(data)};
 
+    REQUIRE(a.size() == 4);
 
+    REQUIRE(a[0]->size() == 0);
+    REQUIRE(*a[0] == "");
+    REQUIRE("" == *a[0]);
+    REQUIRE(*a[0]->end() == 0);
+
+    REQUIRE(a[1]->size() == 1);
+    REQUIRE(*a[1] == "a");
+    REQUIRE(*a[1]->end() == 0);
+
+    REQUIRE(a[2]->size() == 4);
+    REQUIRE(*a[2] == "1234");
+    REQUIRE(*a[2]->end() == 0);
+
+    REQUIRE(a[3]->size() == 13);
+    REQUIRE(*a[3] == "UTF-8: Bäume");
+    REQUIRE(*a[3]->end() == 0);
+}
+
+
+TEST_CASE("vector of ints")
+{
+    using ItemType = std::int8_t;
+
+    builder b;
+
+    {
+        // TODO: it would be nice if we could omit the SizeType argument (std::uint32_t) here, but then we either have
+        //  to cast the size that is passed to add_vector to the desired type, or we have to add type-specific functions
+        //  like add_vector32.
+        builder_offset<vector32<ItemType>> offset_vector = b.add_vector<ItemType, std::uint32_t>(3);
+        (*offset_vector)[0] = 42;
+        (*offset_vector)[1] = 0;
+        (*offset_vector)[2] = -1;
+    }
+
+    const auto data{move_builder_data(b)};
+    const vector32<ItemType> &v{as<vector32<ItemType>>(data)};
+
+    REQUIRE(v.size() == 3);
+    REQUIRE(v[0] == 42);
+    REQUIRE(v[1] == 0);
+    REQUIRE(v[2] == -1);
 }
