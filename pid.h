@@ -9,6 +9,7 @@
 namespace pid {
     template<typename T, typename offset_type=std::int32_t>
     struct relative_ptr {
+        //using ItemType = T;
         offset_type offset;
 
         relative_ptr(const struct relative_ptr &) = delete;
@@ -69,6 +70,11 @@ namespace pid {
         bool operator==(const String &other) const {
             return std::string_view{*this} == other;
         }
+
+        template<typename String>
+        bool operator<(const String &other) const {
+            return std::string_view{*this} < other;
+        }
     };
 
     using string32 = generic_string<std::uint32_t>;
@@ -125,16 +131,27 @@ namespace pid {
         const Value &at(const CompatibleKey &key) const {
             const auto it{std::lower_bound(items.begin(), items.end(),
                                            key,
-                                           [](const auto &i, const CompatibleKey &key) {
-                                               return i.first < key;
+                                           [](const auto &map_item, const CompatibleKey &key) {
+                                               return get_key(map_item) < key;
                                            }
             )};
 
-            if (it == items.end() || it->first != key) {
+            if (it == items.end() || get_key(*it) != key) {
                 throw std::out_of_range{"key not found"};
             }
 
             return it->second;
+        }
+
+    private:
+        template<typename T>
+        static const auto &get_key(const std::pair<relative_ptr<T>, Value> &map_item) {
+            return *map_item.first;
+        }
+
+        template<typename T>
+        static const auto &get_key(const std::pair<T, Value> &map_item) {
+            return map_item.first;
         }
     };
 
@@ -242,7 +259,6 @@ namespace pid {
         builder_offset<VectorType> items;
         SizeType current_size{0};
 
-        // This could accept either a POD type or a builder_offset
         builder_offset<Value> add_key(const Key &key) {
             if (current_size == items->size()) {
                 throw std::out_of_range{"map is full"};
@@ -254,6 +270,29 @@ namespace pid {
 
             ItemType &item{(*items)[current_size]};
             item.first = key;
+
+            auto result{items.b.convert_to_builder_offset(&item.second)};
+            ++current_size;
+
+            return result;
+        }
+
+        template<typename Pointer>
+        builder_offset<Value> add_key(Pointer p) {
+            if (current_size == items->size()) {
+                throw std::out_of_range{"map is full"};
+            }
+
+            if (current_size > 0) {
+                const auto &last_item{(*items)[current_size - 1]};
+                const auto &last_key{*last_item.first};
+                if (not(last_key < *p)) {
+                    throw std::logic_error{"unsorted"};
+                }
+            }
+
+            ItemType &item{(*items)[current_size]};
+            item.first = p;
 
             auto result{items.b.convert_to_builder_offset(&item.second)};
             ++current_size;

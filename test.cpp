@@ -260,3 +260,42 @@ TEST_CASE("map int -> string")
     CHECK_THROWS_AS(m.at(5), std::out_of_range);
     CHECK_THROWS_AS(m.at(7), std::out_of_range);
 }
+
+TEST_CASE("map string -> int")
+{
+    builder b;
+
+    {
+        auto map_builder{b.add_map<relative_ptr<string32>, std::int32_t, std::uint32_t>(5)};
+
+        *map_builder.add_key(b.add_string("four")) = 4;
+
+        // check sorting violations
+        CHECK_THROWS_AS(map_builder.add_key(b.add_string("evil")), std::logic_error);
+        CHECK_THROWS_AS(map_builder.add_key(b.add_string("four")), std::logic_error);
+
+        *map_builder.add_key(b.add_string("one")) = 1;
+        *map_builder.add_key(b.add_string("six")) = 6;
+        *map_builder.add_key(b.add_string("three")) = 3;
+        *map_builder.add_key(b.add_string("two")) = 2;
+
+        CHECK_THROWS_AS(map_builder.add_key(b.add_string("unicorn")), std::out_of_range);
+    }
+
+    const auto data{move_builder_data(b)};
+    const auto &m{as<generic_map<relative_ptr<string32>, std::int32_t, std::uint32_t>>(data)};
+
+    REQUIRE(m.size() == 5);
+
+    dump(data);
+
+    CHECK(m.at("one") == 1);
+    CHECK(m.at("two") == 2);
+    CHECK(m.at("three") == 3);
+    CHECK(m.at("four") == 4);
+    CHECK(m.at("six") == 6);
+
+    CHECK_THROWS_AS(m.at("a"), std::out_of_range);
+    CHECK_THROWS_AS(m.at("m"), std::out_of_range);
+    CHECK_THROWS_AS(m.at("z"), std::out_of_range);
+}
