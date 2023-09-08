@@ -2,7 +2,47 @@
 
 #include "catch.hpp"
 
+#include <iostream>
+#include <iomanip>
+
 using namespace pid;
+
+void dump(const std::vector<char> & data)
+{
+    const auto ints{reinterpret_cast<const std::int32_t *>(data.data())};
+
+    for (std::size_t index{0}; index < (data.size() + 3) / 4; ++index) {
+        std::cout << std::setw(4) << 4 * index << ".." << std::min(4 * index + 3, data.size() - 1)
+                  << ": ";
+
+        for (std::size_t i{0}; i < 4; ++i) {
+            const auto byteIndex{4 * index + 1};
+
+            if (byteIndex >= data.size()) {
+                std::cout << " ";
+            } else {
+                const auto c{data[4 * index + i]};
+                if (c >= 32) {
+                    std::cout << c;
+                } else {
+                    std::cout << '.';
+                }
+            }
+        }
+
+        std::cout << "  (";
+        for (std::size_t i{0}; i < 4 && 4 * index + i < data.size(); ++i) {
+            std::cout << " " << std::int32_t{data[4 * index + i]};
+        }
+        std::cout << " )";
+
+        if (4 * index + 4 <= data.size()) {
+            std::cout << " (" << ints[index] << ")";
+        }
+
+        std::cout << std::endl;
+    }
+}
 
 std::vector<char> move_builder_data(builder & b)
 {
@@ -36,7 +76,7 @@ TEST_CASE("plain old data")
     const auto data{move_builder_data(b)};
     const std::int32_t i{as<std::int32_t>(data)};
 
-    REQUIRE(i == 42);
+    CHECK(i == 42);
 }
 
 TEST_CASE("struct with plain old data members")
@@ -66,13 +106,13 @@ TEST_CASE("struct with plain old data members")
     const auto data{move_builder_data(b)};
     const pod & p{as<pod>(data)};
 
-    REQUIRE(p.b == true);
-    REQUIRE(p.i == 4711);
-    REQUIRE(p.x == -1.5);
-    REQUIRE(p.byte == 127);
-    REQUIRE(p.a[0] == 10);
-    REQUIRE(p.a[1] == 20);
-    REQUIRE(p.a[2] == 30);
+    CHECK(p.b == true);
+    CHECK(p.i == 4711);
+    CHECK(p.x == -1.5);
+    CHECK(p.byte == 127);
+    CHECK(p.a[0] == 10);
+    CHECK(p.a[1] == 20);
+    CHECK(p.a[2] == 30);
 }
 
 TEST_CASE("nested struct")
@@ -85,8 +125,8 @@ TEST_CASE("nested struct")
 
     struct line
     {
-        offset<point> a;
-        offset<point> b;
+        relative_ptr<point> a;
+        relative_ptr<point> b;
     };
 
     builder b;
@@ -108,10 +148,10 @@ TEST_CASE("nested struct")
     const auto data{move_builder_data(b)};
     const line & l{as<line>(data)};
 
-    REQUIRE(l.a->x == 3);
-    REQUIRE(l.a->y == 5);
-    REQUIRE(l.b->x == 8);
-    REQUIRE(l.b->y == 13);
+    CHECK(l.a->x == 3);
+    CHECK(l.a->y == 5);
+    CHECK(l.b->x == 8);
+    CHECK(l.b->y == 13);
 }
 
 TEST_CASE("single string")
@@ -125,13 +165,13 @@ TEST_CASE("single string")
     const auto data{move_builder_data(b)};
     const string32 & s{as<string32>(data)};
 
-    REQUIRE(s.size() == 12);
-    REQUIRE(std::string_view{s} == "Hello world!");
+    CHECK(s.size() == 12);
+    CHECK(std::string_view{s} == "Hello world!");
 }
 
 TEST_CASE("strings")
 {
-    using StringArray = std::array<offset<pid::string32>, 4>;
+    using StringArray = std::array<relative_ptr<pid::string32>, 4>;
 
     builder b;
 
@@ -148,22 +188,22 @@ TEST_CASE("strings")
 
     REQUIRE(a.size() == 4);
 
-    REQUIRE(a[0]->size() == 0);
-    REQUIRE(*a[0] == "");
-    REQUIRE("" == *a[0]);
-    REQUIRE(*a[0]->end() == 0);
+    CHECK(a[0]->size() == 0);
+    CHECK(*a[0] == "");
+    CHECK("" == *a[0]);
+    CHECK(*a[0]->end() == 0);
 
-    REQUIRE(a[1]->size() == 1);
-    REQUIRE(*a[1] == "a");
-    REQUIRE(*a[1]->end() == 0);
+    CHECK(a[1]->size() == 1);
+    CHECK(*a[1] == "a");
+    CHECK(*a[1]->end() == 0);
 
-    REQUIRE(a[2]->size() == 4);
-    REQUIRE(*a[2] == "1234");
-    REQUIRE(*a[2]->end() == 0);
+    CHECK(a[2]->size() == 4);
+    CHECK(*a[2] == "1234");
+    CHECK(*a[2]->end() == 0);
 
-    REQUIRE(a[3]->size() == 13);
-    REQUIRE(*a[3] == "UTF-8: Bäume");
-    REQUIRE(*a[3]->end() == 0);
+    CHECK(a[3]->size() == 13);
+    CHECK(*a[3] == "UTF-8: Bäume");
+    CHECK(*a[3]->end() == 0);
 }
 
 TEST_CASE("vector of ints")
@@ -188,7 +228,82 @@ TEST_CASE("vector of ints")
     const vector32<ItemType> & v{as<vector32<ItemType>>(data)};
 
     REQUIRE(v.size() == 3);
-    REQUIRE(v[0] == 42);
-    REQUIRE(v[1] == 0);
-    REQUIRE(v[2] == -1);
+    CHECK(v[0] == 42);
+    CHECK(v[1] == 0);
+    CHECK(v[2] == -1);
+}
+
+TEST_CASE("map int -> string")
+{
+    builder b;
+
+    {
+        auto map_builder{b.add_map<int32_t, relative_ptr<string32>, std::uint32_t>(5)};
+
+        *map_builder.add_key(1) = b.add_string("one");
+
+        // check sorting violations
+        CHECK_THROWS_AS(map_builder.add_key(-1), std::logic_error);
+        CHECK_THROWS_AS(map_builder.add_key(1), std::logic_error);
+
+        *map_builder.add_key(2) = b.add_string("two");
+        *map_builder.add_key(3) = b.add_string("three");
+        *map_builder.add_key(4) = b.add_string("four");
+        *map_builder.add_key(6) = b.add_string("six");
+
+        CHECK_THROWS_AS(map_builder.add_key(7), std::out_of_range);
+    }
+
+    const auto data{move_builder_data(b)};
+    const auto & m{as<generic_map<std::int32_t, relative_ptr<string32>, std::uint32_t>>(data)};
+
+    REQUIRE(m.size() == 5);
+    CHECK(*m.at(1) == "one");
+    CHECK(*m.at(2) == "two");
+    CHECK(*m.at(3) == "three");
+    CHECK(*m.at(4) == "four");
+    CHECK(*m.at(6) == "six");
+
+    CHECK_THROWS_AS(m.at(0), std::out_of_range);
+    CHECK_THROWS_AS(m.at(5), std::out_of_range);
+    CHECK_THROWS_AS(m.at(7), std::out_of_range);
+}
+
+TEST_CASE("map string -> int")
+{
+    builder b;
+
+    {
+        auto map_builder{b.add_map<relative_ptr<string32>, std::int32_t, std::uint32_t>(5)};
+
+        *map_builder.add_key(b.add_string("four")) = 4;
+
+        // check sorting violations
+        CHECK_THROWS_AS(map_builder.add_key(b.add_string("evil")), std::logic_error);
+        CHECK_THROWS_AS(map_builder.add_key(b.add_string("four")), std::logic_error);
+
+        *map_builder.add_key(b.add_string("one")) = 1;
+        *map_builder.add_key(b.add_string("six")) = 6;
+        *map_builder.add_key(b.add_string("three")) = 3;
+        *map_builder.add_key(b.add_string("two")) = 2;
+
+        CHECK_THROWS_AS(map_builder.add_key(b.add_string("unicorn")), std::out_of_range);
+    }
+
+    const auto data{move_builder_data(b)};
+    const auto & m{as<generic_map<relative_ptr<string32>, std::int32_t, std::uint32_t>>(data)};
+
+    REQUIRE(m.size() == 5);
+
+    dump(data);
+
+    CHECK(m.at("one") == 1);
+    CHECK(m.at("two") == 2);
+    CHECK(m.at("three") == 3);
+    CHECK(m.at("four") == 4);
+    CHECK(m.at("six") == 6);
+
+    CHECK_THROWS_AS(m.at("a"), std::out_of_range);
+    CHECK_THROWS_AS(m.at("m"), std::out_of_range);
+    CHECK_THROWS_AS(m.at("z"), std::out_of_range);
 }
