@@ -4,11 +4,19 @@
 #include <cstdint>
 #include <string_view>
 #include <cstring>
+#include <stdexcept>
+
+// TODO remove
+#include <iostream>
 
 namespace pid {
     template<typename T, typename offset_type=std::int32_t>
-    struct offset {
+    struct relative_ptr {
         offset_type offset;
+
+        relative_ptr(const struct relative_ptr &) = delete;
+
+        relative_ptr(struct relative_ptr &&) = delete;
 
         // TODO: make sure that Pointer points to T or const T with std::enable_if
         template<typename Pointer>
@@ -97,11 +105,67 @@ namespace pid {
     template<typename T>
     using vector32 = generic_vector<T, std::uint32_t>;
 
+    template<typename Key, typename Value, typename SizeType>
+    struct generic_map {
+        using ItemType = std::pair<Key, Value>;
+        using VectorType = generic_vector<ItemType, SizeType>;
+
+        VectorType items;
+
+        SizeType size() const {
+            return items.size();
+        }
+
+        [[nodiscard]] const ItemType *begin() const {
+            return items.begin();
+        }
+
+        [[nodiscard]] const ItemType *end() const {
+            return items.end();
+        }
+
+        template<typename CompatibleKey>
+        const Value &at(const CompatibleKey &key) const {
+            const auto it{std::lower_bound(items.begin(), items.end(),
+                                           key,
+                                           [](const auto &i, const CompatibleKey &key) {
+                                               return i.first < key;
+                                           }
+            )};
+
+            std::cout << "!!> " << (it - items.begin()) << std::endl;
+
+            if (it == items.end() || it->first != key) {
+                throw std::out_of_range{"key not found"};
+            }
+
+            return it->second;
+        }
+    };
+
+    template<typename Key, typename Value>
+    using map32 = generic_map<Key, Value, std::uint32_t>;
+
     template<typename T>
     struct builder_offset;
 
+    template<typename Key, typename Value, typename SizeType>
+    struct generic_map_builder;
+
     struct builder {
         std::vector<char> data;
+
+        template<typename T>
+        builder_offset<T> convert_to_builder_offset(T *p) {
+            auto c{reinterpret_cast<const char *>(p)};
+            if (c < data.data() or c > data.data() + data.size()) {
+                throw std::out_of_range{"Pointer does not point to builder data"};
+            }
+
+            const std::size_t offset{static_cast<std::size_t>(reinterpret_cast<char *>(p) - data.data())};
+
+            return {*this, offset};
+        }
 
         template<typename T>
         builder_offset<T> add() {
@@ -116,6 +180,9 @@ namespace pid {
             // TODO: alignment!
             const auto total_size = (sizeof(SizeType) + s.size() + 1 + 3) / 4 * 4;
             const auto offset{data.size()};
+
+            std::cout << "relative_ptr " << offset << ": string " << s << std::endl;
+
             data.resize(data.size() + total_size);
             builder_offset<generic_string<SizeType>> result{*this, offset};
             result->string_length = s.size();
@@ -125,10 +192,11 @@ namespace pid {
             return result;
         }
 
-        template<typename T, typename SizeType=std::uint32_t>
+        template<typename T, typename SizeType>
         builder_offset<generic_vector<T, SizeType>> add_vector(SizeType size) {
             // TODO: alignment!
-            const auto total_size = sizeof(SizeType) * size;
+            const auto total_size = sizeof(T) * size;
+            //const auto total_size = sizeof(SizeType) * size;
             const auto offset{data.size()};
             data.resize(data.size() + total_size);
 
@@ -137,6 +205,17 @@ namespace pid {
 
             return result;
         }
+
+        template<typename Key, typename Value, typename SizeType>
+        generic_map_builder<Key, Value, SizeType> add_map(SizeType size) {
+            using MapBuilderType = generic_map_builder<Key, Value, SizeType>;
+            using ItemType = typename MapBuilderType::ItemType;
+            using VectorType = typename MapBuilderType::VectorType;
+
+            const builder_offset<VectorType> items{add_vector<ItemType, SizeType>(size)};
+            return MapBuilderType{items};
+        }
+
     };
 
     template<typename T>
@@ -158,6 +237,35 @@ namespace pid {
 
         const T *operator->() const {
             return reinterpret_cast<const T *>(b.data.data() + offset);
+        }
+    };
+
+    template<typename Key, typename Value, typename SizeType>
+    struct generic_map_builder {
+        using MapType = generic_map<Key, Value, SizeType>;
+        using VectorType = typename MapType::VectorType;
+        using ItemType = typename MapType::ItemType;
+
+        builder_offset<VectorType> items;
+        SizeType current_size{0};
+
+        // This could accept either a POD type or a builder_offset
+        builder_offset<Value> add_key(const Key &key) {
+            if (current_size == items->size()) {
+                throw std::out_of_range{"map is full"};
+            }
+
+            if (current_size > 0 and not((*items)[current_size - 1].first < key)) {
+                throw std::logic_error{"unsorted"};
+            }
+
+            ItemType &item{(*items)[current_size]};
+            item.first = key;
+
+            auto result{items.b.convert_to_builder_offset(&item.second)};
+            ++current_size;
+
+            return result;
         }
     };
 }
