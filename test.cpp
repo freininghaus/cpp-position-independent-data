@@ -228,7 +228,6 @@ TEST_CASE("vector of ints")
 TEST_CASE("map int -> string")
 {
     builder b;
-    b.data.reserve(1024);
 
     {
         auto map_builder{b.add_map<int32_t, relative_ptr<string32>, std::uint32_t>(5)};
