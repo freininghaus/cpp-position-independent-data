@@ -6,9 +6,6 @@
 #include <cstring>
 #include <stdexcept>
 
-// TODO remove
-#include <iostream>
-
 namespace pid {
     template<typename T, typename offset_type=std::int32_t>
     struct relative_ptr {
@@ -133,8 +130,6 @@ namespace pid {
                                            }
             )};
 
-            std::cout << "!!> " << (it - items.begin()) << std::endl;
-
             if (it == items.end() || it->first != key) {
                 throw std::out_of_range{"key not found"};
             }
@@ -181,8 +176,6 @@ namespace pid {
             const auto total_size = (sizeof(SizeType) + s.size() + 1 + 3) / 4 * 4;
             const auto offset{data.size()};
 
-            std::cout << "relative_ptr " << offset << ": string " << s << std::endl;
-
             data.resize(data.size() + total_size);
             builder_offset<generic_string<SizeType>> result{*this, offset};
             result->string_length = s.size();
@@ -195,7 +188,7 @@ namespace pid {
         template<typename T, typename SizeType>
         builder_offset<generic_vector<T, SizeType>> add_vector(SizeType size) {
             // TODO: alignment!
-            const auto total_size = sizeof(T) * size;
+            const auto total_size = sizeof(SizeType) + sizeof(T) * size;
             //const auto total_size = sizeof(SizeType) * size;
             const auto offset{data.size()};
             data.resize(data.size() + total_size);

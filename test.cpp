@@ -1,26 +1,44 @@
-#include <iomanip>
 #include "pid.h"
 
 #include "catch.hpp"
+
+#include <iostream>
+#include <iomanip>
 
 using namespace pid;
 
 void dump(const std::vector<char> &data) {
     const auto ints{reinterpret_cast<const std::int32_t *>(data.data())};
 
-    for (std::size_t index{0}; index < data.size() / 4; ++index) {
-        std::cout << std::setw(4) << 4 * index << ": ";
+    for (std::size_t index{0}; index < (data.size() + 3) / 4; ++index) {
+        std::cout << std::setw(4) << 4 * index << ".." << std::min(4 * index + 3, data.size() - 1) << ": ";
 
         for (std::size_t i{0}; i < 4; ++i) {
-            const auto c{data[4 * index + i]};
-            if (c >= 32) {
-                std::cout << c;
+            const auto byteIndex{4 * index + 1};
+
+            if (byteIndex >= data.size()) {
+                std::cout << " ";
             } else {
-                std::cout << '*';
+                const auto c{data[4 * index + i]};
+                if (c >= 32) {
+                    std::cout << c;
+                } else {
+                    std::cout << '.';
+                }
             }
         }
 
-        std::cout << " (" << ints[index] << ")" << std::endl;
+        std::cout << "  (";
+        for (std::size_t i{0}; i < 4 && 4 * index + i < data.size(); ++i) {
+            std::cout << " " << std::int32_t{data[4 * index + i]};
+        }
+        std::cout << " )";
+
+        if (4 * index + 4 <= data.size()) {
+            std::cout << " (" << ints[index] << ")";
+        }
+
+        std::cout << std::endl;
     }
 }
 
@@ -215,60 +233,31 @@ TEST_CASE("map int -> string")
     {
         auto map_builder{b.add_map<int32_t, relative_ptr<string32>, std::uint32_t>(5)};
 
-        const auto one = b.add_string("one");
-        *map_builder.add_key(1) = one;
-
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
+        *map_builder.add_key(1) = b.add_string("one");
 
         // check sorting violations
         CHECK_THROWS_AS(map_builder.add_key(-1), std::logic_error);
-        //CHECK_THROWS_AS(map_builder.add_key(1), std::logic_error);  // TODO: this should throw!
+        CHECK_THROWS_AS(map_builder.add_key(1), std::logic_error);
 
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
         *map_builder.add_key(2) = b.add_string("two");
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
-        std::cout << "now adding 3 (1)..." << std::endl;
-        const auto three = b.add_string("three");
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
-        std::cout << "now adding 3 (2)..." << std::endl;
-        auto key3 = map_builder.add_key(3);
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
-        std::cout << "now adding 3 (3)..." << std::endl;
-        std::cout << key3.offset << std::endl;
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
-
-
-        dump(b.data);
-
-
-        std::cout << "now adding 3 (4)..." << std::endl;
-        relative_ptr<string32> &o_key3 = *key3;
-        std::cout << o_key3.offset << std::endl;
-        o_key3 = three;
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
+        *map_builder.add_key(3) = b.add_string("three");
         *map_builder.add_key(4) = b.add_string("four");
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
         *map_builder.add_key(6) = b.add_string("six");
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
 
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
         CHECK_THROWS_AS(map_builder.add_key(7), std::out_of_range);
-
-        std::cout << "!!> " << std::string_view{*one} << " " << b.data.capacity() << std::endl;
     }
 
     const auto data{move_builder_data(b)};
     const auto &m{as<generic_map<std::int32_t, relative_ptr<string32>, std::uint32_t>>(data)};
 
     REQUIRE(m.size() == 5);
-    //CHECK(*m.at(1) == "onw");
+    CHECK(*m.at(1) == "one");
+    CHECK(*m.at(2) == "two");
+    CHECK(*m.at(3) == "three");
+    CHECK(*m.at(4) == "four");
+    CHECK(*m.at(6) == "six");
 
-    for (const auto &[key, val]: m) {
-        std::cout << key << ": " << std::string_view{*val} << std::endl;
-    }
-
-    for (const auto &item: m) {
-        std::cout << (reinterpret_cast<const char *>(&item) - data.data()) << ": " << item.first << " "
-                  << item.second.offset << std::endl;
-    }
+    CHECK_THROWS_AS(m.at(0), std::out_of_range);
+    CHECK_THROWS_AS(m.at(5), std::out_of_range);
+    CHECK_THROWS_AS(m.at(7), std::out_of_range);
 }
