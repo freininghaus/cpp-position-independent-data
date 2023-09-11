@@ -5,6 +5,7 @@
 #include <string_view>
 #include <cstring>
 #include <stdexcept>
+#include <limits>
 
 namespace pid {
     template <typename T, typename offset_type = std::int32_t>
@@ -209,24 +210,31 @@ namespace pid {
         }
 
         template <typename T>
-        builder_offset<T> add()
+        std::size_t next_offset() const
         {
-            // TODO: alignment!
-            const auto offset{data.size()};
-            data.resize(data.size() + sizeof(T));
+            const std::size_t current_ptr{
+                reinterpret_cast<const std::size_t>(data.data()) + data.size()};
+            const std::size_t alignment{alignof(T)};
+            const std::size_t alignment_mask{
+                std::numeric_limits<std::size_t>::max() << (alignment - 1)};
+            const std::size_t padding{(alignment - (current_ptr & ~alignment_mask)) % alignment};
+            return data.size() + padding;
+        }
+
+        template <typename T>
+        builder_offset<T> add(std::size_t extra_bytes = 0)
+        {
+            const auto offset{next_offset<T>()};
+            data.resize(offset + sizeof(T) + extra_bytes);
             return {*this, offset};
         }
 
         template <typename SizeType = std::uint32_t>
         builder_offset<generic_string<SizeType>> add_string(std::string_view s)
         {
-            // TODO: alignment!
-            const auto total_size = (sizeof(SizeType) + s.size() + 1 + 3) / 4 * 4;
-            const auto offset{data.size()};
-
-            data.resize(data.size() + total_size);
-            builder_offset<generic_string<SizeType>> result{*this, offset};
-            result->string_length = s.size();
+            const auto size{s.size()};
+            auto result{add<generic_string<SizeType>>(size + 1)};  // add 1 for null terminator
+            result->string_length = size;
             std::memcpy(result->data, s.begin(), s.size());
             result->data[s.size()] = 0;
 
@@ -236,13 +244,7 @@ namespace pid {
         template <typename T, typename SizeType>
         builder_offset<generic_vector<T, SizeType>> add_vector(SizeType size)
         {
-            // TODO: alignment!
-            const auto total_size = sizeof(SizeType) + sizeof(T) * size;
-            // const auto total_size = sizeof(SizeType) * size;
-            const auto offset{data.size()};
-            data.resize(data.size() + total_size);
-
-            builder_offset<generic_vector<T, SizeType>> result{*this, offset};
+            auto result{add<generic_vector<T, SizeType>>(size * sizeof(T))};
             result->vector_length = size;
 
             return result;

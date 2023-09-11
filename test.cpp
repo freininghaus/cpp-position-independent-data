@@ -297,8 +297,6 @@ TEST_CASE("map string -> int")
 
     REQUIRE(m.size() == 5);
 
-    dump(data);
-
     CHECK(m.at("one") == 1);
     CHECK(m.at("two") == 2);
     CHECK(m.at("three") == 3);
@@ -308,4 +306,110 @@ TEST_CASE("map string -> int")
     CHECK_THROWS_AS(m.at("a"), std::out_of_range);
     CHECK_THROWS_AS(m.at("m"), std::out_of_range);
     CHECK_THROWS_AS(m.at("z"), std::out_of_range);
+}
+
+TEST_CASE("alignment")
+{
+    builder b;
+
+    struct test
+    {
+        relative_ptr<std::uint8_t> u8;
+        relative_ptr<std::uint16_t> u16;
+        relative_ptr<std::uint32_t> u32;
+        relative_ptr<std::uint64_t> u64;
+        relative_ptr<std::int8_t> i8;
+        relative_ptr<string32> s;
+        relative_ptr<std::int16_t> i16;
+        relative_ptr<vector32<std::int32_t>> v32_i32;
+        relative_ptr<std::int32_t> i32;
+        relative_ptr<vector32<double>> v32_d;
+    };
+
+    {
+        builder_offset<test> t{b.add<test>()};
+
+        auto u8 = b.add<std::uint8_t>();
+        t->u8 = u8;
+        *u8 = 8;
+
+        auto u16 = b.add<std::uint16_t>();
+        t->u16 = u16;
+        *u16 = 16;
+
+        auto u32 = b.add<std::uint32_t>();
+        t->u32 = u32;
+        *u32 = 32;
+
+        auto u64 = b.add<std::uint64_t>();
+        t->u64 = u64;
+        *u64 = 64;
+
+        auto i8 = b.add<std::int8_t>();
+        t->i8 = i8;
+        *i8 = -8;
+
+        auto s = b.add_string("foo");
+        t->s = s;
+
+        auto i16 = b.add<std::int16_t>();
+        t->i16 = i16;
+        *i16 = -16;
+
+        auto v32_i32 = b.add_vector<std::int32_t, std::uint32_t>(1);
+        t->v32_i32 = v32_i32;
+        (*v32_i32)[0] = 42;
+
+        auto i32 = b.add<std::int32_t>();
+        t->i32 = i32;
+        *i32 = -32;
+
+        auto v32_d = b.add_vector<double, std::uint32_t>(1);
+        t->v32_d = v32_d;
+        (*v32_d)[0] = 1.5;
+    }
+
+    const auto data{move_builder_data(b)};
+    const auto & t{as<test>(data)};
+
+    CHECK(*t.u8 == 8);
+    CHECK(*t.u16 == 16);
+    CHECK(*t.u32 == 32);
+    CHECK(*t.u64 == 64);
+    CHECK(*t.i8 == -8);
+    CHECK(t.s->size() == 3);
+    CHECK(*t.s == "foo");
+    CHECK(*t.i16 == -16);
+    CHECK(t.v32_i32->size() == 1);
+    CHECK((*t.v32_i32)[0] == 42);
+    CHECK(*t.i32 == -32);
+    CHECK(t.v32_d->size() == 1);
+    CHECK((*t.v32_d)[0] == 1.5);
+
+    const auto alignment = [&](const auto & rel) {
+        const auto p{&*rel};
+
+        std::size_t result{1};
+        while (not(reinterpret_cast<const std::size_t>(p) & result)) {
+            result <<= 1;
+        }
+
+        return result;
+    };
+
+    const auto expected_alignment = [](const auto & p) { return alignof(decltype(*p)); };
+
+    CHECK(alignment(t.u8) >= expected_alignment(t.u8));
+    CHECK(alignment(t.u16) >= expected_alignment(t.u16));
+    CHECK(alignment(t.u32) >= expected_alignment(t.u32));
+    CHECK(alignment(t.u64) >= expected_alignment(t.u64));
+    CHECK(alignment(t.i8) >= expected_alignment(t.i8));
+    CHECK(alignment(t.s) >= expected_alignment(t.s));
+    CHECK(alignment(t.i16) >= expected_alignment(t.i16));
+    CHECK(alignment(t.v32_i32) >= expected_alignment(t.v32_i32));
+    CHECK(alignment(t.i32) >= expected_alignment(t.i32));
+    CHECK(alignment(t.v32_d) >= expected_alignment(t.v32_d));
+
+    // Check that we do not waste space with excessive padding
+    CHECK(data.size() == 104);
 }
