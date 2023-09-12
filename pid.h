@@ -20,6 +20,13 @@ namespace pid {
 
         // TODO: make sure that Pointer points to T or const T with std::enable_if
         template <typename Pointer>
+        relative_ptr(Pointer p)
+        {
+            *this = p;
+        }
+
+        // TODO: make sure that Pointer points to T or const T with std::enable_if
+        template <typename Pointer>
         auto & operator=(Pointer p)
         {
             offset = reinterpret_cast<const char *>(&*p) - reinterpret_cast<const char *>(this);
@@ -64,6 +71,11 @@ namespace pid {
             return string_length;
         }
 
+        bool empty() const
+        {
+            return string_length == 0;
+        }
+
         [[nodiscard]] const char * begin() const
         {
             return data;
@@ -103,6 +115,11 @@ namespace pid {
         SizeType size() const
         {
             return vector_length;
+        }
+
+        bool empty() const
+        {
+            return vector_length == 0;
         }
 
         [[nodiscard]] const T * begin() const

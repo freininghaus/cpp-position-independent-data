@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <optional>
 
 using namespace pid;
 
@@ -191,6 +192,7 @@ TEST_CASE("strings")
     REQUIRE(a.size() == 4);
 
     CHECK(a[0]->size() == 0);
+    CHECK(a[0]->empty());
     CHECK(*a[0] == "");
     CHECK("" == *a[0]);
     CHECK(*a[0]->end() == 0);
@@ -412,4 +414,51 @@ TEST_CASE("alignment")
 
     // Check that we do not waste space with excessive padding
     CHECK(data.size() == 104);
+}
+
+TEST_CASE("struct with optionals")
+{
+    builder b;
+
+    struct test
+    {
+        std::optional<relative_ptr<string32>> s1;
+        std::optional<relative_ptr<string32>> s2;
+
+        std::optional<relative_ptr<vector32<std::int32_t>>> v1;
+        std::optional<relative_ptr<vector32<std::int32_t>>> v2;
+        std::optional<relative_ptr<vector32<std::int32_t>>> v3;
+    };
+
+    {
+        builder_offset<test> t{b.add<test>()};
+
+        t->s2 = b.add_string("foo");
+
+        t->v2 = b.add_vector<std::int32_t>(0);
+
+        auto v3 = b.add_vector<std::int32_t>(2);
+        t->v3 = v3;
+        (*v3)[0] = 42;
+        (*v3)[1] = -1;
+    }
+
+    const auto data{move_builder_data(b)};
+    const auto & t{as<test>(data)};
+
+    CHECK(not t.s1);
+
+    CHECK(t.s2);
+    CHECK(**t.s2 == "foo");
+
+    CHECK(not t.v1);
+
+    CHECK(t.v2);
+    CHECK((*t.v2)->size() == 0);
+    CHECK((*t.v2)->empty());
+
+    CHECK(t.v3);
+    CHECK((*t.v3)->size() == 2);
+    CHECK((**t.v3)[0] == 42);
+    CHECK((**t.v3)[1] == -1);
 }
