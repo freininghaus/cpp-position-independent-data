@@ -271,6 +271,13 @@ TEST_CASE("map int -> string")
     CHECK_THROWS_AS(m.at(0), std::out_of_range);
     CHECK_THROWS_AS(m.at(5), std::out_of_range);
     CHECK_THROWS_AS(m.at(7), std::out_of_range);
+
+    CHECK(m.find(1) == m.begin());
+    CHECK(m.find(1)->first == 1);
+    CHECK(*m.find(1)->second == "one");
+    CHECK(m.find(2)->first == 2);
+    CHECK(*m.find(2)->second == "two");
+    CHECK(m.find(5) == m.end());
 }
 
 TEST_CASE("map string -> int")
@@ -308,6 +315,11 @@ TEST_CASE("map string -> int")
     CHECK_THROWS_AS(m.at("a"), std::out_of_range);
     CHECK_THROWS_AS(m.at("m"), std::out_of_range);
     CHECK_THROWS_AS(m.at("z"), std::out_of_range);
+
+    CHECK(m.find("four") == m.begin());
+    CHECK(*m.find("four")->first == "four");
+    CHECK(m.find("four")->second == 4);
+    CHECK(m.find("five") == m.end());
 }
 
 TEST_CASE("alignment")

@@ -109,6 +109,9 @@ namespace pid {
     template <typename T, typename SizeType>
     struct generic_vector
     {
+        using const_iterator = const T *;
+        using iterator = const_iterator;
+
         SizeType vector_length;
         T data[];
 
@@ -122,12 +125,12 @@ namespace pid {
             return vector_length == 0;
         }
 
-        [[nodiscard]] const T * begin() const
+        [[nodiscard]] const_iterator begin() const
         {
             return data;
         }
 
-        [[nodiscard]] const T * end() const
+        [[nodiscard]] const_iterator end() const
         {
             return data + vector_length;
         }
@@ -151,6 +154,8 @@ namespace pid {
     {
         using ItemType = std::pair<Key, Value>;
         using VectorType = generic_vector<ItemType, SizeType>;
+        using const_iterator = typename VectorType::const_iterator;
+        using iterator = const_iterator;
 
         VectorType items;
 
@@ -159,18 +164,18 @@ namespace pid {
             return items.size();
         }
 
-        [[nodiscard]] const ItemType * begin() const
+        [[nodiscard]] const_iterator begin() const
         {
             return items.begin();
         }
 
-        [[nodiscard]] const ItemType * end() const
+        [[nodiscard]] const_iterator end() const
         {
             return items.end();
         }
 
         template <typename CompatibleKey>
-        const Value & at(const CompatibleKey & key) const
+        const_iterator find(const CompatibleKey & key) const
         {
             const auto it{std::lower_bound(
                 items.begin(), items.end(), key,
@@ -179,6 +184,18 @@ namespace pid {
                 })};
 
             if (it == items.end() || get_key(*it) != key) {
+                return end();
+            }
+
+            return it;
+        }
+
+        template <typename CompatibleKey>
+        const Value & at(const CompatibleKey & key) const
+        {
+            const auto it{find(key)};
+
+            if (it == end()) {
                 throw std::out_of_range{"key not found"};
             }
 
@@ -315,6 +332,11 @@ namespace pid {
 
         builder_offset<VectorType> items;
         SizeType current_size{0};
+
+        builder_offset<generic_map<Key, Value, SizeType>> offset() const
+        {
+            return {items.b, items.offset};
+        }
 
         builder_offset<Value> add_key(const Key & key)
         {
