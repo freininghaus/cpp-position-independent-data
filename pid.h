@@ -8,9 +8,9 @@
 #include <limits>
 
 namespace pid {
-    template<typename T, typename offset_type=std::int32_t>
+    template<typename T, typename offset_type = std::int32_t>
     struct relative_ptr {
-        //using ItemType = T;
+        // using ItemType = T;
         offset_type offset;
 
         relative_ptr(const struct relative_ptr &) = delete;
@@ -92,6 +92,9 @@ namespace pid {
 
     template<typename T, typename SizeType>
     struct generic_vector {
+        using const_iterator = const T *;
+        using iterator = const_iterator;
+
         SizeType vector_length;
         T data[];
 
@@ -103,11 +106,11 @@ namespace pid {
             return vector_length == 0;
         }
 
-        [[nodiscard]] const T *begin() const {
+        [[nodiscard]] const_iterator begin() const {
             return data;
         }
 
-        [[nodiscard]] const T *end() const {
+        [[nodiscard]] const_iterator end() const {
             return data + vector_length;
         }
 
@@ -127,6 +130,8 @@ namespace pid {
     struct generic_map {
         using ItemType = std::pair<Key, Value>;
         using VectorType = generic_vector<ItemType, SizeType>;
+        using const_iterator = VectorType::const_iterator;
+        using iterator = const_iterator;
 
         VectorType items;
 
@@ -134,24 +139,34 @@ namespace pid {
             return items.size();
         }
 
-        [[nodiscard]] const ItemType *begin() const {
+        [[nodiscard]] const_iterator begin() const {
             return items.begin();
         }
 
-        [[nodiscard]] const ItemType *end() const {
+        [[nodiscard]] const_iterator end() const {
             return items.end();
         }
 
         template<typename CompatibleKey>
-        const Value &at(const CompatibleKey &key) const {
-            const auto it{std::lower_bound(items.begin(), items.end(),
-                                           key,
-                                           [](const auto &map_item, const CompatibleKey &key) {
-                                               return get_key(map_item) < key;
-                                           }
-            )};
+        const_iterator find(const CompatibleKey &key) const {
+            const auto it{std::lower_bound(
+                    items.begin(), items.end(), key,
+                    [](const auto &map_item, const CompatibleKey &key) {
+                        return get_key(map_item) < key;
+                    })};
 
             if (it == items.end() || get_key(*it) != key) {
+                return end();
+            }
+
+            return it;
+        }
+
+        template<typename CompatibleKey>
+        const Value &at(const CompatibleKey &key) const {
+            const auto it{find(key)};
+
+            if (it == end()) {
                 throw std::out_of_range{"key not found"};
             }
 
@@ -189,16 +204,19 @@ namespace pid {
                 throw std::out_of_range{"Pointer does not point to builder data"};
             }
 
-            const std::size_t offset{static_cast<std::size_t>(reinterpret_cast<char *>(p) - data.data())};
+            const std::size_t offset{
+                    static_cast<std::size_t>(reinterpret_cast<char *>(p) - data.data())};
 
             return {*this, offset};
         }
 
         template<typename T>
         std::size_t next_offset() const {
-            const std::size_t current_ptr{reinterpret_cast<const std::size_t >(data.data()) + data.size()};
+            const std::size_t current_ptr{
+                    reinterpret_cast<const std::size_t>(data.data()) + data.size()};
             const std::size_t alignment{alignof(T)};
-            const std::size_t alignment_mask{std::numeric_limits<std::size_t>::max() << (alignment - 1)};
+            const std::size_t alignment_mask{
+                    std::numeric_limits<std::size_t>::max() << (alignment - 1)};
             const std::size_t padding{(alignment - (current_ptr & ~alignment_mask)) % alignment};
             return data.size() + padding;
         }
@@ -210,7 +228,7 @@ namespace pid {
             return {*this, offset};
         }
 
-        template<typename SizeType=std::uint32_t>
+        template<typename SizeType = std::uint32_t>
         builder_offset<generic_string<SizeType>> add_string(std::string_view s) {
             const auto size{s.size()};
             auto result{add<generic_string<SizeType>>(size + 1)};  // add 1 for null terminator
@@ -238,7 +256,6 @@ namespace pid {
             const builder_offset<VectorType> items{add_vector<ItemType, SizeType>(size)};
             return MapBuilderType{items};
         }
-
     };
 
     template<typename T>
@@ -271,6 +288,10 @@ namespace pid {
 
         builder_offset<VectorType> items;
         SizeType current_size{0};
+
+        builder_offset<generic_map<Key, Value, SizeType>> offset() const {
+            return {items.b, items.offset};
+        }
 
         builder_offset<Value> add_key(const Key &key) {
             if (current_size == items->size()) {
