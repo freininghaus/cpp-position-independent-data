@@ -208,6 +208,13 @@ TEST_CASE("strings")
     CHECK(a[3]->size() == 13);
     CHECK(*a[3] == "UTF-8: Bäume");
     CHECK(*a[3]->end() == 0);
+
+    const string32 & s_1234{*a[2]};
+    CHECK(s_1234 == "1234");
+    CHECK(s_1234 == std::string{"1234"});
+    CHECK(std::string{"1234"} == s_1234);
+    CHECK(s_1234 < std::string{"234"});
+    CHECK(std::string{"123"} < s_1234);
 }
 
 TEST_CASE("vector of ints")

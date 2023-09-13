@@ -102,6 +102,12 @@ namespace pid {
         {
             return std::string_view{*this} < other;
         }
+
+        template <typename String>
+        friend bool operator<(const String & other, const generic_string<SizeType> & self)
+        {
+            return other < std::string_view{self};
+        }
     };
 
     using string32 = generic_string<std::uint32_t>;
