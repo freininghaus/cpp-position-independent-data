@@ -66,6 +66,10 @@ namespace pid {
         SizeType string_length;
         char data[];
 
+        generic_string(const generic_string &) = delete;
+
+        generic_string(generic_string &&) = delete;
+
         SizeType size() const
         {
             return string_length;
@@ -125,6 +129,10 @@ namespace pid {
 
         SizeType vector_length;
         T data[];
+
+        generic_vector(const generic_vector &) = delete;
+
+        generic_vector(generic_vector &&) = delete;
 
         SizeType size() const
         {
