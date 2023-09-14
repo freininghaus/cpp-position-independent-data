@@ -134,7 +134,7 @@ TEST_CASE("single string") {
 
 TEST_CASE("strings")
 {
-    using StringArray = std::array<relative_ptr<pid::string32>, 4>;
+    using StringArray = std::array<relative_ptr<pid::string32>, 5>;
 
     builder b;
 
@@ -150,26 +150,33 @@ TEST_CASE("strings")
     const auto data{move_builder_data(b)};
     const StringArray &a{as<StringArray>(data)};
 
-    REQUIRE(a.size() == 4);
+    REQUIRE(a.size() == 5);
 
+    CHECK(a[0]);
     CHECK(a[0]->size() == 0);
     CHECK(a[0]->empty());
     CHECK(*a[0] == "");
     CHECK("" == *a[0]);
     CHECK(*a[0]->end() == 0);
 
+    CHECK(a[1]);
     CHECK(a[1]->size() == 1);
     CHECK(*a[1] == "a");
     CHECK(*a[1]->end() == 0);
 
+    CHECK(a[2]);
     CHECK(a[2]->size() == 4);
     CHECK(*a[2] == "1234");
     CHECK(*a[2]->end() == 0);
 
+    CHECK(a[3]);
     CHECK(a[3]->size() == 13);
     CHECK(*a[3] == "UTF-8: Bäume");
     CHECK(*a[3]->end() == 0);
 
+    CHECK(not a[4]);
+
+    // Test comparisons
     const string32 &s_1234{*a[2]};
     CHECK(s_1234 == "1234");
     CHECK(s_1234 == std::string{"1234"});

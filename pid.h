@@ -30,6 +30,10 @@ namespace pid {
             return *this;
         }
 
+        operator bool() const {
+            return offset != 0;
+        }
+
         T &operator*() {
             return *operator->();
         }
