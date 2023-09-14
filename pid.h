@@ -91,6 +91,10 @@ namespace pid {
         friend bool operator<(const String &other, const generic_string<SizeType> &self) {
             return other < std::string_view{self};
         }
+
+        friend std::ostream &operator<<(std::ostream &o, const generic_string<SizeType> &s) {
+            return o << std::string_view{s};
+        }
     };
 
     using string32 = generic_string<std::uint32_t>;
