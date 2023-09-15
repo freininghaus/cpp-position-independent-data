@@ -3,6 +3,7 @@
 #include "pid.h"
 
 #include <iostream>
+#include <map>
 
 namespace pid {
     template<typename T>
@@ -31,5 +32,15 @@ namespace pid {
         return result;
     }
 
-    // TODO: maps
+    template<typename Key, typename Value>
+    builder_offset<map32<typename pid_type<Key>::type, typename pid_type<Value>::type>>
+    build(pid::builder &b, const std::map<Key, Value> &m) {
+        auto result{b.add_map<typename pid_type<Key>::type, typename pid_type<Value>::type, std::uint32_t>(m.size())};
+
+        for (const auto &[key, value]: m) {
+            *result.add_key(build(b, key)) = build(b, value);
+        }
+
+        return result.offset();
+    }
 }

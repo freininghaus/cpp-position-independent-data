@@ -24,17 +24,29 @@ auto build_helper(const T &value) {
 
 TEST_CASE("build vector of ints") {
     std::vector<std::int32_t> v_input{{1, 1, 2, 3, 5, 8}};
-    //std::pair<const vector32<int32_t> &, std::vector<char>> result{build_helper(v_input)};
-
     const auto &[result, data] = build_helper(v_input);
 
     const pid::vector32<std::int32_t> &v{*result};
 
     REQUIRE(v.size() == 6);
-    REQUIRE(v[0] == 1);
-    REQUIRE(v[1] == 1);
-    REQUIRE(v[2] == 2);
-    REQUIRE(v[3] == 3);
-    REQUIRE(v[4] == 5);
-    REQUIRE(v[5] == 8);
+    CHECK(v[0] == 1);
+    CHECK(v[1] == 1);
+    CHECK(v[2] == 2);
+    CHECK(v[3] == 3);
+    CHECK(v[4] == 5);
+    CHECK(v[5] == 8);
+}
+
+TEST_CASE("build map (int -> int)")
+{
+    std::map<std::int32_t, std::int32_t> m_input{{42, 1},
+                                                 {-1, 2}};
+    const auto &[result, data] = build_helper(m_input);
+
+    const pid::map32<std::int32_t, std::int32_t> &m{*result};
+
+    REQUIRE(m.size() == 2);
+    CHECK_THROWS_AS(m.at(0), std::out_of_range);
+    CHECK(m.at(42) == 1);
+    CHECK(m.at(-1) == 2);
 }
