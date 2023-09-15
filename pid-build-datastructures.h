@@ -7,6 +7,9 @@
 
 namespace pid {
     template <typename T>
+    struct pid_type;
+
+    template <typename T>
     struct pid_base_type
     {
         using type = T;
@@ -16,6 +19,12 @@ namespace pid {
     struct pid_base_type<std::string>
     {
         using type = pid::string32;
+    };
+
+    template <typename T>
+    struct pid_base_type<std::vector<T>>
+    {
+        using type = pid::vector32<typename pid_type<T>::type>;
     };
 
     template <typename T>
