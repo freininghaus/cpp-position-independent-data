@@ -8,7 +8,7 @@
 namespace pid {
     template<typename T>
     struct pid_type;
-    
+
     template<typename T>
     struct pid_base_type {
         using type = T;
@@ -22,6 +22,11 @@ namespace pid {
     template<typename T>
     struct pid_base_type<std::vector<T>> {
         using type = pid::vector32<typename pid_type<T>::type>;
+    };
+
+    template<typename Key, typename Value>
+    struct pid_base_type<std::map<Key, Value>> {
+        using type = pid::map32<typename pid_type<Key>::type, typename pid_type<Value>::type>;
     };
 
     template<typename T>
