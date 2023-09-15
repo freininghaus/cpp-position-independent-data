@@ -4,7 +4,7 @@
 
 namespace pid {
 
-    void dump(const std::vector<char> & data)
+    inline void dump(const std::vector<char> & data)
     {
         const auto ints{reinterpret_cast<const std::int32_t *>(data.data())};
 

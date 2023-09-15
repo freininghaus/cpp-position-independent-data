@@ -1,6 +1,7 @@
 #include "pid-build-datastructures.h"
 
 #include "catch.hpp"
+#include "pid-debug.h"
 
 #include <iostream>
 
@@ -147,4 +148,39 @@ TEST_CASE("build map (str -> (str -> [int]))")
     CHECK((*m.at("c")->at("c2"))[0] == 7);
     CHECK((*m.at("c")->at("c2"))[1] == 8);
     CHECK((*m.at("c")->at("c2"))[2] == 9);
+}
+
+TEST_CASE("build vector of optional ints")
+{
+    std::vector<std::optional<std::int32_t>> v_input{{1, std::nullopt, 2, 3, 5, 8}};
+    const auto & [result, data] = build_helper(v_input);
+
+    const pid::vector32<std::optional<std::int32_t>> & v = *result;
+
+    REQUIRE(v.size() == 6);
+    CHECK(v[0]);
+    CHECK(*v[0] == 1);
+    CHECK(not v[1]);
+    CHECK(v[2]);
+    CHECK(v[2] == 2);
+    CHECK(v[3]);
+    CHECK(v[3] == 3);
+    CHECK(v[4]);
+    CHECK(v[4] == 5);
+    CHECK(v[5]);
+    CHECK(v[5] == 8);
+}
+
+TEST_CASE("build vector of optional strings")
+{
+    std::vector<std::optional<std::string>> v_input{{"a", std::nullopt, "b", "c"}};
+    const auto & [result, data] = build_helper(v_input);
+
+    const pid::vector32<pid::relative_ptr<pid::string32>> & v = *result;
+
+    REQUIRE(v.size() == 4);
+    CHECK(*v[0] == "a");
+    CHECK(not v[1]);
+    CHECK(*v[2] == "b");
+    CHECK(*v[3] == "c");
 }

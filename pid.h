@@ -29,7 +29,12 @@ namespace pid {
         template <typename Pointer>
         auto & operator=(Pointer p)
         {
-            offset = reinterpret_cast<const char *>(&*p) - reinterpret_cast<const char *>(this);
+            if (p) {
+                offset =
+                    reinterpret_cast<const char *>(&*p) - reinterpret_cast<const char *>(this);
+            } else {
+                offset = 0;
+            }
             return *this;
         }
 
@@ -331,6 +336,26 @@ namespace pid {
     {
         builder & b;
         const std::size_t offset;
+        const bool valid;
+
+        builder_offset(builder & b) : b{b}, offset{0}, valid{false} {}
+
+        builder_offset(builder & b, std::size_t offset) : b{b}, offset{offset}, valid{true} {}
+
+        builder_offset(const builder_offset & other)
+            : b{other.b}, offset{other.offset}, valid{other.valid}
+        {
+        }
+
+        builder_offset(builder_offset && other)
+            : b{other.b}, offset{other.offset}, valid{other.valid}
+        {
+        }
+
+        explicit operator bool() const
+        {
+            return valid;
+        }
 
         T & operator*()
         {
