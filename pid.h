@@ -216,6 +216,12 @@ namespace pid {
     struct generic_map_builder;
 
     struct builder {
+        builder() {}
+
+        builder(const builder &) = delete;
+
+        builder(builder &&) = delete;
+
         std::vector<char> data;
 
         template<typename T>
