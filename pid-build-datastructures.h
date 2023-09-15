@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <map>
+#include <optional>
 
 namespace pid {
     template<typename T>
@@ -12,6 +13,14 @@ namespace pid {
     template<typename T>
     struct pid_base_type {
         using type = T;
+    };
+
+    template<typename T>
+    struct pid_base_type<std::optional<T>> {
+        // nullopt will just be represented by a null pointer
+        using type = typename std::conditional<
+                std::is_arithmetic<T>::value ||
+                std::is_enum<T>::value, std::optional<T>, typename pid::pid_base_type<T>::type>::type;
     };
 
     template<>

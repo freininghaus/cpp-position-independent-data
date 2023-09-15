@@ -157,3 +157,5 @@ TEST_CASE("build map (str -> (str -> [int]))") {
     CHECK((*m.at("c")->at("c2"))[1] == 8);
     CHECK((*m.at("c")->at("c2"))[2] == 9);
 }
+
+// TODO: test optionals
