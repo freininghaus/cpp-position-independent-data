@@ -44,6 +44,12 @@ namespace pid {
             std::is_enum<T>::value, T, pid::relative_ptr<typename pid_base_type<T>::type>> {
     };
 
+    template<typename T>
+    struct pid_type<std::optional<T>> : std::conditional<
+            std::is_arithmetic<T>::value ||
+            std::is_enum<T>::value, std::optional<T>, pid::relative_ptr<typename pid_base_type<T>::type>> {
+    };
+
     template<typename T, typename = std::enable_if<std::is_arithmetic<T>::value || std::is_enum<T>::value, bool>>
     T build(pid::builder &, T value) {
         return value;
@@ -51,6 +57,20 @@ namespace pid {
 
     inline builder_offset<string32> build(pid::builder &b, const std::string &s) {
         return b.add_string(s);
+    }
+
+    template<typename T>
+    auto build(pid::builder &b, const std::optional<T> &o) {
+        if constexpr (std::is_arithmetic<T>::value ||
+                      std::is_enum<T>::value) {
+            return o;
+        } else {
+            if (o) {
+                return build(b, *o);
+            } else {
+                return builder_offset<typename pid_base_type<T>::type>{b};
+            }
+        }
     }
 
     template<typename T>

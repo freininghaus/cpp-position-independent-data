@@ -4,8 +4,7 @@
 
 namespace pid {
 
-    void dump(const std::vector<char> & data)
-    {
+    inline void dump(const std::vector<char> &data) {
         const auto ints{reinterpret_cast<const std::int32_t *>(data.data())};
 
         for (std::size_t index{0}; index < (data.size() + 3) / 4; ++index) {
@@ -17,13 +16,11 @@ namespace pid {
 
                 if (byteIndex >= data.size()) {
                     std::cout << " ";
-                }
-                else {
+                } else {
                     const auto c{data[4 * index + i]};
                     if (c >= 32) {
                         std::cout << c;
-                    }
-                    else {
+                    } else {
                         std::cout << '.';
                     }
                 }
