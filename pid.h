@@ -33,7 +33,7 @@ namespace pid {
             return *this;
         }
 
-        operator bool() const
+        explicit operator bool() const
         {
             return offset != 0;
         }

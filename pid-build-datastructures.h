@@ -7,9 +7,21 @@
 
 namespace pid {
     template <typename T>
-    struct pid_type
-        : std::conditional<
-              std::is_arithmetic<T>::value || std::is_enum<T>::value, T, pid::relative_ptr<T>>
+    struct pid_base_type
+    {
+        using type = T;
+    };
+
+    template <>
+    struct pid_base_type<std::string>
+    {
+        using type = pid::string32;
+    };
+
+    template <typename T>
+    struct pid_type : std::conditional<
+                          std::is_arithmetic<T>::value || std::is_enum<T>::value, T,
+                          pid::relative_ptr<typename pid_base_type<T>::type>>
     {
     };
 
