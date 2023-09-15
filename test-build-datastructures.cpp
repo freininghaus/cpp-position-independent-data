@@ -120,8 +120,31 @@ TEST_CASE("build map (int -> [str])")
     CHECK(*(*m.at(6))[1] == "three");
 }
 
-/*
-TEST_CASE("build map (str -> (str -> [int]))") {
-    std::map<std::string, std::map<std::string, std::vector<std::int32_t>>> map{{}};
+TEST_CASE("build map (str -> (str -> [int]))")
+{
+    std::map<std::string, std::map<std::string, std::vector<std::int32_t>>> m_input{{
+        {"a", {}},
+        {"b", {{"b1", {}}}},
+        {"c", {{"c1", {42}}, {"c2", {7, 8, 9}}}},
+    }};
+    const auto & [result, data] = build_helper(m_input);
+
+    const pid::map32<
+        pid::relative_ptr<pid::string32>,
+        pid::relative_ptr<pid::map32<
+            pid::relative_ptr<pid::string32>, pid::relative_ptr<pid::vector32<std::int32_t>>>>> &
+        m = *result;
+
+    REQUIRE(m.size() == 3);
+    CHECK_THROWS_AS(m.at("foo"), std::out_of_range);
+    REQUIRE(m.at("a")->size() == 0);
+    REQUIRE(m.at("b")->size() == 1);
+    REQUIRE(m.at("b")->at("b1")->size() == 0);
+    REQUIRE(m.at("c")->size() == 2);
+    REQUIRE(m.at("c")->at("c1")->size() == 1);
+    CHECK((*m.at("c")->at("c1"))[0] == 42);
+    REQUIRE(m.at("c")->at("c2")->size() == 3);
+    CHECK((*m.at("c")->at("c2"))[0] == 7);
+    CHECK((*m.at("c")->at("c2"))[1] == 8);
+    CHECK((*m.at("c")->at("c2"))[2] == 9);
 }
-*/
