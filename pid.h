@@ -251,6 +251,12 @@ namespace pid {
 
     struct builder
     {
+        builder() {}
+
+        builder(const builder &) = delete;
+
+        builder(builder &&) = delete;
+
         std::vector<char> data;
 
         template <typename T>

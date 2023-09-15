@@ -9,6 +9,6 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror")
 enable_testing()
 
 add_executable(cpp_position_independent_data main.cpp)
-add_executable(tests test.cpp test_main.cpp)
+add_executable(tests test.cpp test-build-datastructures.cpp test_main.cpp)
 
 add_test(tests tests)
