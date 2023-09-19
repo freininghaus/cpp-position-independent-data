@@ -10,7 +10,8 @@ using namespace pid;
 template<typename T>
 auto build_helper(const T &value) {
     pid::builder builder;
-    const auto result{pid::build(builder, value)};
+    pid::datastructure_builder d_builder{builder};
+    const auto result{d_builder(value)};
     using ResultType = std::remove_reference<decltype(*result)>::type;
 
     const auto offset{result.offset};
