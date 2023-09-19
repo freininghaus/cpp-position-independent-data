@@ -192,3 +192,47 @@ TEST_CASE("build vector of optional strings") {
     CHECK(*v[2] == "b");
     CHECK(*v[3] == "c");
 }
+
+TEST_CASE("test caching 1") {
+    std::map<std::string, std::vector<std::optional<std::string>>> m_input{
+            {
+                    {"a", {"x", std::nullopt, "z"}},
+                    {"b", {"a", "b", "c"}},
+                    {"c", {"x", std::nullopt, "z"}}
+            }};
+
+    const auto &[result, data] = build_helper(m_input);
+
+    const pid::map32<
+            pid::relative_ptr<pid::string32>,
+            pid::relative_ptr<pid::vector32<
+                    pid::relative_ptr<pid::string32>
+            >>
+    > &m = *result;
+
+    REQUIRE(m.size() == 3);
+
+    const auto itA{m.find("a")};
+    const auto itB{m.find("b")};
+    const auto itC{m.find("c")};
+
+    REQUIRE(itA != m.end());
+    REQUIRE(itB != m.end());
+    REQUIRE(itC != m.end());
+
+    REQUIRE(itA->second->size() == 3);
+    REQUIRE(itB->second->size() == 3);
+    REQUIRE(itB->second->size() == 3);
+
+    // Verify deduplication of strings
+    CHECK(&*itA->first == &*(*itB->second)[0]);  // "a"
+    CHECK(&*itB->first == &*(*itB->second)[1]);  // "b"
+    CHECK(&*(*itA->second)[0] == &*(*itC->second)[0]);  // "x"
+    CHECK(&*(*itA->second)[2] == &*(*itC->second)[2]);  // "z
+
+    // Verify deduplication of vectors
+    CHECK(&*itA->second == &*itC->second);
+}
+
+// TODO: deduplication of maps
+
