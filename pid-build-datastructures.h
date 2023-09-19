@@ -5,6 +5,8 @@
 #include <iostream>
 #include <map>
 #include <optional>
+#include <any>
+#include <atomic>
 
 namespace pid {
     template <typename T>
@@ -61,6 +63,36 @@ namespace pid {
     struct datastructure_builder
     {
         pid::builder & b;
+        std::map<std::size_t, std::any> caches{};
+
+        static std::size_t next_cache_index()
+        {
+            static std::atomic<std::size_t> next_index{0};
+            return next_index++;
+        }
+
+        template <typename T>
+        static std::size_t cache_index()
+        {
+            static const auto result{next_cache_index()};
+            return result;
+        }
+
+        template <typename T>
+        using CacheType = std::map<
+            T, decltype(std::declval<datastructure_builder>()(std::declval<T>())), std::less<>>;
+
+        template <typename T>
+        CacheType<T> & get_cache()
+        {
+            const auto index{cache_index<T>()};
+            auto it{caches.find(index)};
+            if (it == caches.end()) {
+                it = caches.insert(std::make_pair(index, CacheType<T>{})).first;
+            }
+
+            return std::any_cast<CacheType<T> &>(it->second);
+        }
 
         template <
             typename T, typename = std::enable_if<
@@ -72,7 +104,12 @@ namespace pid {
 
         inline builder_offset<string32> operator()(const std::string & s)
         {
-            return b.add_string(s);
+            auto & cache{get_cache<std::string>()};
+            auto it{cache.find(s)};
+            if (it == cache.end()) {
+                it = cache.insert(std::make_pair(s, b.add_string(s))).first;
+            }
+            return it->second;
         }
 
         template <typename T>
@@ -92,6 +129,17 @@ namespace pid {
         template <typename T>
         inline builder_offset<vector32<typename pid_type<T>::type>> operator()(
             const std::vector<T> & v)
+        {
+            auto & cache{get_cache<std::vector<T>>()};
+            auto it{cache.find(v)};
+            if (it == cache.end()) {
+                it = cache.insert(std::make_pair(v, build(v))).first;
+            }
+            return it->second;
+        }
+
+        template <typename T>
+        inline builder_offset<vector32<typename pid_type<T>::type>> build(const std::vector<T> & v)
         {
             builder_offset<vector32<typename pid_type<T>::type>> result =
                 b.add_vector<typename pid_type<T>::type, std::uint32_t>(v.size());
