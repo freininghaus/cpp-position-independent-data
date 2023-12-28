@@ -6,6 +6,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <limits>
+#include <algorithm>
 
 namespace pid {
     template <typename T, typename offset_type = std::int32_t>
