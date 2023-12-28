@@ -1,4 +1,4 @@
-#include "pid-build-datastructures.h"
+#include <pid/pid-build-datastructures.h>
 
 #include "catch.hpp"
 #include "pid-debug.h"

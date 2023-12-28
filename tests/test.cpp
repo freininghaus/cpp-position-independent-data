@@ -1,4 +1,4 @@
-#include "pid.h"
+#include <pid/pid.h>
 
 #include "catch.hpp"
 
