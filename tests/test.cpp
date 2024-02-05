@@ -206,6 +206,8 @@ TEST_CASE("vector of ints")
         (*offset_vector)[0] = 42;
         (*offset_vector)[1] = 0;
         (*offset_vector)[2] = -1;
+
+        REQUIRE(offset_vector->size() == 3);
     }
 
     const auto data{move_builder_data(b)};
@@ -353,6 +355,10 @@ TEST_CASE("alignment")
         auto v32_i32 = b.add_vector<std::int32_t, std::uint32_t>(1);
         t->v32_i32 = v32_i32;
         (*v32_i32)[0] = 42;
+
+        // important check - accessing items through a builder_offset and a
+        // relative_ptr requires const-correctness in relative_ptr::get()
+        REQUIRE(t->v32_i32->size() == 1);
 
         auto i32 = b.add<std::int32_t>();
         t->i32 = i32;

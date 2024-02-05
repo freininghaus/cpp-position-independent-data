@@ -65,9 +65,15 @@ namespace pid {
         }
 
         template <typename Pointer>
-        Pointer get() const
+        const Pointer get() const
         {
-            return reinterpret_cast<Pointer>(reinterpret_cast<const char *>(this) + offset);
+            return reinterpret_cast<const Pointer>(reinterpret_cast<const char *>(this) + offset);
+        }
+
+        template <typename Pointer>
+        Pointer get()
+        {
+            return reinterpret_cast<Pointer>(reinterpret_cast<char *>(this) + offset);
         }
     };
 
