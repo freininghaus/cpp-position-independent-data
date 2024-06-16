@@ -460,3 +460,36 @@ TEST_CASE("struct with optionals")
     CHECK((**t.v3)[0] == 42);
     CHECK((**t.v3)[1] == -1);
 }
+
+TEST_CASE("offset overflow")
+{
+    struct s
+    {
+        relative_ptr<std::int32_t, std::int8_t> a;
+    };
+
+    builder b;
+
+    {
+        builder_offset<s> offset_s{b.add<s>()};
+
+        // offsets up to i = 30 fit into an std::int8_t
+        for (std::int32_t i{0}; i < 31; ++i) {
+            builder_offset<std::int32_t> offset_int32{b.add<std::int32_t>()};
+            *offset_int32 = i;
+            offset_s->a = offset_int32;
+        }
+
+        // offset 31 does not fit into an std::int8_t
+        {
+            builder_offset<std::int32_t> offset_int32{b.add<std::int32_t>()};
+            *offset_int32 = 31;
+            CHECK_THROWS_AS(offset_s->a = offset_int32, std::out_of_range);
+        }
+    }
+
+    const auto data{move_builder_data(b)};
+    const auto & result{as<s>(data)};
+
+    CHECK(*result.a == 30);
+}

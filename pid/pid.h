@@ -31,8 +31,13 @@ namespace pid {
         auto & operator=(Pointer p)
         {
             if (p) {
-                offset =
+                const std::ptrdiff_t offset64 =
                     reinterpret_cast<const char *>(&*p) - reinterpret_cast<const char *>(this);
+                if (offset64 < std::numeric_limits<offset_type>::min()
+                    or offset64 > std::numeric_limits<offset_type>::max()) {
+                    throw std::out_of_range{"Pointer is too far away"};
+                }
+                offset = static_cast<offset_type>(offset64);
             } else {
                 offset = 0;
             }
