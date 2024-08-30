@@ -10,18 +10,18 @@
 
 namespace pid {
     template <typename T, typename offset_type>
-    struct relative_ptr
+    struct ptr
     {
         // using ItemType = T;
         offset_type offset;
 
-        relative_ptr(const struct relative_ptr &) = delete;
+        ptr(const struct ptr &) = delete;
 
-        relative_ptr(struct relative_ptr &&) = delete;
+        ptr(struct ptr &&) = delete;
 
         // TODO: make sure that Pointer points to T or const T with std::enable_if
         template <typename Pointer>
-        relative_ptr(Pointer p)
+        ptr(Pointer p)
         {
             *this = p;
         }
@@ -83,16 +83,16 @@ namespace pid {
     };
 
     template <typename T>
-    using relative_ptr8 = relative_ptr<T, std::int8_t>;
+    using ptr8 = ptr<T, std::int8_t>;
 
     template <typename T>
-    using relative_ptr16 = relative_ptr<T, std::int16_t>;
+    using ptr16 = ptr<T, std::int16_t>;
 
     template <typename T>
-    using relative_ptr32 = relative_ptr<T, std::int32_t>;
+    using ptr32 = ptr<T, std::int32_t>;
 
     template <typename T>
-    using relative_ptr64 = relative_ptr<T, std::int64_t>;
+    using ptr64 = ptr<T, std::int64_t>;
 
     template <typename SizeType>
     struct generic_string
@@ -257,8 +257,7 @@ namespace pid {
 
     private:
         template <typename T, typename offset_type>
-        static const auto & get_key(
-            const std::pair<relative_ptr<T, offset_type>, Value> & map_item)
+        static const auto & get_key(const std::pair<ptr<T, offset_type>, Value> & map_item)
         {
             return *map_item.first;
         }

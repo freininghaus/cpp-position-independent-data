@@ -89,8 +89,8 @@ TEST_CASE("nested struct")
 
     struct line
     {
-        relative_ptr32<point> a;
-        relative_ptr32<point> b;
+        ptr32<point> a;
+        ptr32<point> b;
     };
 
     builder b;
@@ -140,7 +140,7 @@ TEST_CASE("single string")
 
 TEST_CASE("strings")
 {
-    using StringArray = std::array<relative_ptr32<pid::string32>, 5>;
+    using StringArray = std::array<ptr32<pid::string32>, 5>;
 
     builder b;
 
@@ -224,7 +224,7 @@ TEST_CASE("map int -> string")
     builder b;
 
     {
-        auto map_builder{b.add_map<int32_t, relative_ptr32<string32>, std::uint32_t>(5)};
+        auto map_builder{b.add_map<int32_t, ptr32<string32>, std::uint32_t>(5)};
 
         *map_builder.add_key(1) = b.add_string("one");
 
@@ -241,7 +241,7 @@ TEST_CASE("map int -> string")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<generic_map<std::int32_t, relative_ptr32<string32>, std::uint32_t>>(data)};
+    const auto & m{as<generic_map<std::int32_t, ptr32<string32>, std::uint32_t>>(data)};
 
     REQUIRE(m.size() == 5);
     CHECK(*m.at(1) == "one");
@@ -267,7 +267,7 @@ TEST_CASE("map string -> int")
     builder b;
 
     {
-        auto map_builder{b.add_map<relative_ptr32<string32>, std::int32_t, std::uint32_t>(5)};
+        auto map_builder{b.add_map<ptr32<string32>, std::int32_t, std::uint32_t>(5)};
 
         *map_builder.add_key(b.add_string("four")) = 4;
 
@@ -284,7 +284,7 @@ TEST_CASE("map string -> int")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<generic_map<relative_ptr32<string32>, std::int32_t, std::uint32_t>>(data)};
+    const auto & m{as<generic_map<ptr32<string32>, std::int32_t, std::uint32_t>>(data)};
 
     REQUIRE(m.size() == 5);
 
@@ -310,16 +310,16 @@ TEST_CASE("alignment")
 
     struct test
     {
-        relative_ptr32<std::uint8_t> u8;
-        relative_ptr32<std::uint16_t> u16;
-        relative_ptr32<std::uint32_t> u32;
-        relative_ptr32<std::uint64_t> u64;
-        relative_ptr32<std::int8_t> i8;
-        relative_ptr32<string32> s;
-        relative_ptr32<std::int16_t> i16;
-        relative_ptr32<vector32<std::int32_t>> v32_i32;
-        relative_ptr32<std::int32_t> i32;
-        relative_ptr32<vector32<double>> v32_d;
+        ptr32<std::uint8_t> u8;
+        ptr32<std::uint16_t> u16;
+        ptr32<std::uint32_t> u32;
+        ptr32<std::uint64_t> u64;
+        ptr32<std::int8_t> i8;
+        ptr32<string32> s;
+        ptr32<std::int16_t> i16;
+        ptr32<vector32<std::int32_t>> v32_i32;
+        ptr32<std::int32_t> i32;
+        ptr32<vector32<double>> v32_d;
     };
 
     {
@@ -357,7 +357,7 @@ TEST_CASE("alignment")
         (*v32_i32)[0] = 42;
 
         // important check - accessing items through a builder_offset and a
-        // relative_ptr requires const-correctness in relative_ptr::get()
+        // ptr requires const-correctness in ptr::get()
         REQUIRE(t->v32_i32->size() == 1);
 
         auto i32 = b.add<std::int32_t>();
@@ -420,12 +420,12 @@ TEST_CASE("struct with optionals")
 
     struct test
     {
-        std::optional<relative_ptr32<string32>> s1;
-        std::optional<relative_ptr32<string32>> s2;
+        std::optional<ptr32<string32>> s1;
+        std::optional<ptr32<string32>> s2;
 
-        std::optional<relative_ptr32<vector32<std::int32_t>>> v1;
-        std::optional<relative_ptr32<vector32<std::int32_t>>> v2;
-        std::optional<relative_ptr32<vector32<std::int32_t>>> v3;
+        std::optional<ptr32<vector32<std::int32_t>>> v1;
+        std::optional<ptr32<vector32<std::int32_t>>> v2;
+        std::optional<ptr32<vector32<std::int32_t>>> v3;
     };
 
     {
@@ -465,7 +465,7 @@ TEST_CASE("offset overflow")
 {
     struct s
     {
-        relative_ptr8<std::int32_t> a;
+        ptr8<std::int32_t> a;
     };
 
     builder b;
