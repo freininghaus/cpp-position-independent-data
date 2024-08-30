@@ -9,7 +9,7 @@
 #include <algorithm>
 
 namespace pid {
-    template <typename T, typename offset_type = std::int32_t>
+    template <typename T, typename offset_type>
     struct relative_ptr
     {
         // using ItemType = T;
@@ -81,6 +81,18 @@ namespace pid {
             return reinterpret_cast<Pointer>(reinterpret_cast<char *>(this) + offset);
         }
     };
+
+    template <typename T>
+    using relative_ptr8 = relative_ptr<T, std::int8_t>;
+
+    template <typename T>
+    using relative_ptr16 = relative_ptr<T, std::int16_t>;
+
+    template <typename T>
+    using relative_ptr32 = relative_ptr<T, std::int32_t>;
+
+    template <typename T>
+    using relative_ptr64 = relative_ptr<T, std::int64_t>;
 
     template <typename SizeType>
     struct generic_string
@@ -244,8 +256,9 @@ namespace pid {
         }
 
     private:
-        template <typename T>
-        static const auto & get_key(const std::pair<relative_ptr<T>, Value> & map_item)
+        template <typename T, typename offset_type>
+        static const auto & get_key(
+            const std::pair<relative_ptr<T, offset_type>, Value> & map_item)
         {
             return *map_item.first;
         }

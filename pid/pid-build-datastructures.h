@@ -48,7 +48,8 @@ namespace pid {
     template <typename T>
     struct pid_type : std::conditional<
                           std::is_arithmetic<T>::value || std::is_enum<T>::value, T,
-                          pid::relative_ptr<typename pid_base_type<T>::type>>
+                          // TODO: make offset type configurable
+                          pid::relative_ptr<typename pid_base_type<T>::type, std::int32_t>>
     {
     };
 
@@ -56,7 +57,8 @@ namespace pid {
     struct pid_type<std::optional<T>>
         : std::conditional<
               std::is_arithmetic<T>::value || std::is_enum<T>::value, std::optional<T>,
-              pid::relative_ptr<typename pid_base_type<T>::type>>
+              // TODO: make offset type configurable
+              pid::relative_ptr<typename pid_base_type<T>::type, std::int32_t>>
     {
     };
 
