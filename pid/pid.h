@@ -30,6 +30,15 @@ namespace pid {
         auto & operator=(builder_offset<T> p)
         {
             if (p) {
+                {
+                    const char * own_position{reinterpret_cast<const char *>(this)};
+
+                    if (own_position < p.b.data.data()
+                        or own_position >= p.b.data.data() + p.b.data.size()) {
+                        throw std::invalid_argument{"Pointer does not point to builder data"};
+                    }
+                }
+
                 const std::ptrdiff_t offset64 =
                     reinterpret_cast<const char *>(&*p) - reinterpret_cast<const char *>(this);
                 if (offset64 < std::numeric_limits<offset_type>::min()
