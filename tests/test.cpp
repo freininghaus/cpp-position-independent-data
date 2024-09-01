@@ -105,8 +105,8 @@ TEST_CASE("nested struct")
         offset_p2->x = 8;
         offset_p2->y = 13;
 
-        offset_l->a = &*offset_p1;
-        offset_l->b = &*offset_p2;
+        offset_l->a = offset_p1;
+        offset_l->b = offset_p2;
     }
 
     const auto data{move_builder_data(b)};
@@ -433,9 +433,9 @@ TEST_CASE("struct with optionals")
 
         t->s2 = b.add_string("foo");
 
-        t->v2 = b.add_vector<std::int32_t>(0);
+        t->v2 = b.add_vector<std::int32_t, std::uint32_t>(0);
 
-        auto v3 = b.add_vector<std::int32_t>(2);
+        auto v3 = b.add_vector<std::int32_t, std::uint32_t>(2);
         t->v3 = v3;
         (*v3)[0] = 42;
         (*v3)[1] = -1;

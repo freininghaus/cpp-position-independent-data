@@ -9,6 +9,9 @@
 #include <algorithm>
 
 namespace pid {
+    template <typename T>
+    struct builder_offset;
+
     template <typename T, typename offset_type>
     struct ptr
     {
@@ -19,16 +22,12 @@ namespace pid {
 
         ptr(struct ptr &&) = delete;
 
-        // TODO: make sure that Pointer points to T or const T with std::enable_if
-        template <typename Pointer>
-        ptr(Pointer p)
+        ptr(builder_offset<T> p)
         {
             *this = p;
         }
 
-        // TODO: make sure that Pointer points to T or const T with std::enable_if
-        template <typename Pointer>
-        auto & operator=(Pointer p)
+        auto & operator=(builder_offset<T> p)
         {
             if (p) {
                 const std::ptrdiff_t offset64 =
@@ -271,9 +270,6 @@ namespace pid {
 
     template <typename Key, typename Value>
     using map32 = generic_map<Key, Value, std::uint32_t>;
-
-    template <typename T>
-    struct builder_offset;
 
     template <typename Key, typename Value, typename SizeType>
     struct generic_map_builder;
