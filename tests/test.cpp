@@ -105,8 +105,8 @@ TEST_CASE("nested struct")
         offset_p2->x = 8;
         offset_p2->y = 13;
 
-        offset_l->a = &*offset_p1;
-        offset_l->b = &*offset_p2;
+        offset_l->a = offset_p1;
+        offset_l->b = offset_p2;
     }
 
     const auto data{move_builder_data(b)};
@@ -433,9 +433,9 @@ TEST_CASE("struct with optionals")
 
         t->s2 = b.add_string("foo");
 
-        t->v2 = b.add_vector<std::int32_t>(0);
+        t->v2 = b.add_vector<std::int32_t, std::uint32_t>(0);
 
-        auto v3 = b.add_vector<std::int32_t>(2);
+        auto v3 = b.add_vector<std::int32_t, std::uint32_t>(2);
         t->v3 = v3;
         (*v3)[0] = 42;
         (*v3)[1] = -1;
@@ -492,4 +492,37 @@ TEST_CASE("offset overflow")
     const auto & result{as<s>(data)};
 
     CHECK(*result.a == 30);
+}
+
+TEST_CASE("different builder")
+{
+    struct s
+    {
+        ptr32<std::int32_t> a;
+        ptr32<std::int32_t> b;
+    };
+
+    builder b1;
+    builder b2;
+
+    {
+        builder_offset<s> offset_s{b1.add<s>()};
+
+        builder_offset<std::int32_t> incompatible_offset{b2.add<std::int32_t>()};
+        *incompatible_offset = 41;
+
+        builder_offset<std::int32_t> compatible_offset{b1.add<std::int32_t>()};
+        *compatible_offset = 42;
+
+        CHECK_THROWS_AS(offset_s->a = incompatible_offset, std::invalid_argument);
+
+        offset_s->b = compatible_offset;
+    }
+
+    const auto data{move_builder_data(b1)};
+    const auto & result{as<s>(data)};
+
+    CHECK(not result.a);
+    REQUIRE(result.b);
+    CHECK(*result.b == 42);
 }
