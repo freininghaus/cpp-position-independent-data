@@ -30,17 +30,19 @@ namespace pid {
         auto & operator=(builder_offset<T> p)
         {
             if (p) {
-                {
-                    const char * own_position{reinterpret_cast<const char *>(this)};
+                const char * own_position{reinterpret_cast<const char *>(this)};
 
-                    if (own_position < p.b.data.data()
-                        or own_position >= p.b.data.data() + p.b.data.size()) {
-                        throw std::invalid_argument{"Pointer does not point to builder data"};
+                {
+                    const char * builder_data_start{p.b.data.data()};
+                    const char * builder_data_end{p.b.data.data() + p.b.data.size()};
+
+                    if (own_position < builder_data_start or own_position >= builder_data_end) {
+                        throw std::invalid_argument{
+                            "Pointer does not belong to the data of the correct builder"};
                     }
                 }
 
-                const std::ptrdiff_t offset64 =
-                    reinterpret_cast<const char *>(&*p) - reinterpret_cast<const char *>(this);
+                const std::ptrdiff_t offset64 = reinterpret_cast<const char *>(&*p) - own_position;
                 if (offset64 < std::numeric_limits<offset_type>::min()
                     or offset64 > std::numeric_limits<offset_type>::max()) {
                     throw std::out_of_range{"Pointer is too far away"};
