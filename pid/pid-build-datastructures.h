@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pid.h"
+#include "builder.h"
 
 #include <iostream>
 #include <map>

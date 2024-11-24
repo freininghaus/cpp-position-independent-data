@@ -1,4 +1,5 @@
 #include <pid/pid.h>
+#include <pid/builder.h>
 
 #include "catch.hpp"
 
