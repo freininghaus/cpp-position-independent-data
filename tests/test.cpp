@@ -305,6 +305,25 @@ TEST_CASE("map string -> int")
     CHECK(m.find("five") == m.end());
 }
 
+namespace {
+    auto alignment(const auto & rel)
+    {
+        const auto p{&rel};
+
+        std::size_t result{1};
+        while (not(reinterpret_cast<const std::size_t>(p) & result)) {
+            result <<= 1;
+        }
+
+        return result;
+    };
+
+    auto expected_alignment(const auto & p)
+    {
+        return alignof(decltype(p));
+    };
+}
+
 TEST_CASE("alignment")
 {
     builder b;
@@ -387,32 +406,47 @@ TEST_CASE("alignment")
     CHECK(t.v32_d->size() == 1);
     CHECK((*t.v32_d)[0] == 1.5);
 
-    const auto alignment = [&](const auto & rel) {
-        const auto p{&*rel};
-
-        std::size_t result{1};
-        while (not(reinterpret_cast<const std::size_t>(p) & result)) {
-            result <<= 1;
-        }
-
-        return result;
-    };
-
-    const auto expected_alignment = [](const auto & p) { return alignof(decltype(*p)); };
-
-    CHECK(alignment(t.u8) >= expected_alignment(t.u8));
-    CHECK(alignment(t.u16) >= expected_alignment(t.u16));
-    CHECK(alignment(t.u32) >= expected_alignment(t.u32));
-    CHECK(alignment(t.u64) >= expected_alignment(t.u64));
-    CHECK(alignment(t.i8) >= expected_alignment(t.i8));
-    CHECK(alignment(t.s) >= expected_alignment(t.s));
-    CHECK(alignment(t.i16) >= expected_alignment(t.i16));
-    CHECK(alignment(t.v32_i32) >= expected_alignment(t.v32_i32));
-    CHECK(alignment(t.i32) >= expected_alignment(t.i32));
-    CHECK(alignment(t.v32_d) >= expected_alignment(t.v32_d));
+    CHECK(alignment(*t.u8) >= expected_alignment(*t.u8));
+    CHECK(alignment(*t.u16) >= expected_alignment(*t.u16));
+    CHECK(alignment(*t.u32) >= expected_alignment(*t.u32));
+    CHECK(alignment(*t.u64) >= expected_alignment(*t.u64));
+    CHECK(alignment(*t.i8) >= expected_alignment(*t.i8));
+    CHECK(alignment(*t.s) >= expected_alignment(*t.s));
+    CHECK(alignment(*t.i16) >= expected_alignment(*t.i16));
+    CHECK(alignment(*t.v32_i32) >= expected_alignment(*t.v32_i32));
+    CHECK(alignment(*t.i32) >= expected_alignment(*t.i32));
+    CHECK(alignment(*t.v32_d) >= expected_alignment(*t.v32_d));
 
     // Check that we do not waste space with excessive padding
     CHECK(data.size() == 104);
+}
+
+TEST_CASE("alignment of vector data")
+{
+    builder b;
+
+    constexpr std::uint64_t n0{0x0100000000000002};
+    constexpr std::uint64_t n1{0x0300000000000004};
+
+    {
+        auto v{b.add_vector<std::uint64_t, std::uint32_t>(2)};
+
+        (*v)[0] = n0;
+        (*v)[1] = n1;
+    }
+
+    const auto data{move_builder_data(b)};
+    const auto & v{as<vector32<std::uint64_t>>(data)};
+
+    REQUIRE(v.size() == 2);
+    CHECK(v[0] == n0);
+    CHECK(v[1] == n1);
+
+    CHECK(alignment(v[0]) >= expected_alignment(v[0]));
+    CHECK(alignment(v[1]) >= expected_alignment(v[1]));
+
+    // Check that we do not waste space with excessive padding
+    CHECK(data.size() == 24);
 }
 
 TEST_CASE("struct with optionals")
