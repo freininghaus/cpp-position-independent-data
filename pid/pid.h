@@ -24,33 +24,13 @@ namespace pid {
 
         ptr(builder_offset<T> p)
         {
+            // required for initialization of std::optional<ptr<T>> with '='
             *this = p;
         }
 
         auto & operator=(builder_offset<T> p)
         {
-            if (p) {
-                const char * own_position{reinterpret_cast<const char *>(this)};
-
-                {
-                    const char * builder_data_start{p.b.data.data()};
-                    const char * builder_data_end{p.b.data.data() + p.b.data.size()};
-
-                    if (own_position < builder_data_start or own_position >= builder_data_end) {
-                        throw std::invalid_argument{
-                            "Pointer does not belong to the data of the correct builder"};
-                    }
-                }
-
-                const std::ptrdiff_t offset64 = reinterpret_cast<const char *>(&*p) - own_position;
-                if (offset64 < std::numeric_limits<offset_type>::min()
-                    or offset64 > std::numeric_limits<offset_type>::max()) {
-                    throw std::out_of_range{"Pointer is too far away"};
-                }
-                offset = static_cast<offset_type>(offset64);
-            } else {
-                offset = 0;
-            }
+            p.assign_to(*this);
             return *this;
         }
 
@@ -386,6 +366,34 @@ namespace pid {
         explicit operator bool() const
         {
             return valid;
+        }
+
+        template <typename offset_type>
+        void assign_to(ptr<T, offset_type> & dest) const
+        {
+            if (*this) {
+                const char * dest_position{reinterpret_cast<const char *>(&dest)};
+
+                {
+                    const char * builder_data_start{b.data.data()};
+                    const char * builder_data_end{b.data.data() + b.data.size()};
+
+                    if (dest_position < builder_data_start or dest_position >= builder_data_end) {
+                        throw std::invalid_argument{
+                            "Pointer does not belong to the data of the correct builder"};
+                    }
+                }
+
+                const std::ptrdiff_t offset64 =
+                    reinterpret_cast<const char *>(&**this) - dest_position;
+                if (offset64 < std::numeric_limits<offset_type>::min()
+                    or offset64 > std::numeric_limits<offset_type>::max()) {
+                    throw std::out_of_range{"Pointer is too far away"};
+                }
+                dest.offset = static_cast<offset_type>(offset64);
+            } else {
+                dest.offset = 0;
+            }
         }
 
         T & operator*()
