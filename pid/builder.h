@@ -51,10 +51,11 @@ namespace pid {
         }
 
         template <typename SizeType = std::uint32_t>
-        builder_offset<generic_string<SizeType>> add_string(std::string_view s)
+        builder_offset<generic_string_data<SizeType>> add_string(std::string_view s)
         {
             const auto size{s.size()};
-            auto result{add<generic_string<SizeType>>(size + 1)};  // add 1 for null terminator
+            auto result{
+                add<generic_string_data<SizeType>>(size + 1)};  // add 1 for null terminator
             result->string_length = size;
             std::memcpy(result->data, s.begin(), s.size());
             result->data[s.size()] = 0;
@@ -201,7 +202,7 @@ namespace pid {
 
             if (current_size > 0) {
                 const auto & last_item{(*items)[current_size - 1]};
-                const auto & last_key{*last_item.first};
+                const auto & last_key{last_item.first};
                 if (not(last_key < *p)) {
                     throw std::logic_error{"unsorted"};
                 }

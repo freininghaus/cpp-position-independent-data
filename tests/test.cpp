@@ -124,7 +124,9 @@ TEST_CASE("single string")
     builder b;
 
     {
-        b.add_string("Hello world!");
+        auto s = b.add<string32>();
+        auto data = b.add_string("Hello world!");
+        s->data = data;
     }
 
     const auto data{move_builder_data(b)};
@@ -141,7 +143,7 @@ TEST_CASE("single string")
 
 TEST_CASE("strings")
 {
-    using StringArray = std::array<ptr32<pid::string32>, 5>;
+    using StringArray = std::array<pid::string32, 5>;
 
     builder b;
 
@@ -151,6 +153,7 @@ TEST_CASE("strings")
         (*offset_array)[1] = b.add_string("a");
         (*offset_array)[2] = b.add_string("1234");
         (*offset_array)[3] = b.add_string("UTF-8: Bäume");
+        // 4th item is default initialized, i.e., empty
     }
 
     const auto data{move_builder_data(b)};
@@ -158,32 +161,35 @@ TEST_CASE("strings")
 
     REQUIRE(a.size() == 5);
 
-    CHECK(a[0]);
-    CHECK(a[0]->size() == 0);
-    CHECK(a[0]->empty());
-    CHECK(*a[0] == "");
-    CHECK("" == *a[0]);
-    CHECK(*a[0]->end() == 0);
+    CHECK(a[0].empty());
+    CHECK(a[0].size() == 0);
+    CHECK(a[0] == "");
+    CHECK("" == a[0]);
+    CHECK(*a[0].end() == 0);
 
-    CHECK(a[1]);
-    CHECK(a[1]->size() == 1);
-    CHECK(*a[1] == "a");
-    CHECK(*a[1]->end() == 0);
+    CHECK(not a[1].empty());
+    CHECK(a[1].size() == 1);
+    CHECK(a[1] == "a");
+    CHECK(*a[1].end() == 0);
 
-    CHECK(a[2]);
-    CHECK(a[2]->size() == 4);
-    CHECK(*a[2] == "1234");
-    CHECK(*a[2]->end() == 0);
+    CHECK(not a[1].empty());
+    CHECK(a[2].size() == 4);
+    CHECK(a[2] == "1234");
+    CHECK(*a[2].end() == 0);
 
-    CHECK(a[3]);
-    CHECK(a[3]->size() == 13);
-    CHECK(*a[3] == "UTF-8: Bäume");
-    CHECK(*a[3]->end() == 0);
+    CHECK(not a[1].empty());
+    CHECK(a[3].size() == 13);
+    CHECK(a[3] == "UTF-8: Bäume");
+    CHECK(*a[3].end() == 0);
 
-    CHECK(not a[4]);
+    CHECK(a[4].empty());
+    CHECK(a[4].size() == 0);
+    CHECK(a[4] == "");
+    CHECK("" == a[4]);
+    CHECK(*a[4].end() == 0);
 
     // Test comparisons
-    const string32 & s_1234{*a[2]};
+    const string32 & s_1234{a[2]};
     CHECK(s_1234 == "1234");
     CHECK(s_1234 == std::string{"1234"});
     CHECK(std::string{"1234"} == s_1234);
@@ -225,7 +231,7 @@ TEST_CASE("map int -> string")
     builder b;
 
     {
-        auto map_builder{b.add_map<int32_t, ptr32<string32>, std::uint32_t>(5)};
+        auto map_builder{b.add_map<int32_t, string32, std::uint32_t>(5)};
 
         *map_builder.add_key(1) = b.add_string("one");
 
@@ -242,14 +248,15 @@ TEST_CASE("map int -> string")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<generic_map<std::int32_t, ptr32<string32>, std::uint32_t>>(data)};
+    const auto & m{as<generic_map<std::int32_t, string32, std::uint32_t>>(data)};
 
     REQUIRE(m.size() == 5);
-    CHECK(*m.at(1) == "one");
-    CHECK(*m.at(2) == "two");
-    CHECK(*m.at(3) == "three");
-    CHECK(*m.at(4) == "four");
-    CHECK(*m.at(6) == "six");
+
+    CHECK(m.at(1) == "one");
+    CHECK(m.at(2) == "two");
+    CHECK(m.at(3) == "three");
+    CHECK(m.at(4) == "four");
+    CHECK(m.at(6) == "six");
 
     CHECK_THROWS_AS(m.at(0), std::out_of_range);
     CHECK_THROWS_AS(m.at(5), std::out_of_range);
@@ -257,9 +264,9 @@ TEST_CASE("map int -> string")
 
     CHECK(m.find(1) == m.begin());
     CHECK(m.find(1)->first == 1);
-    CHECK(*m.find(1)->second == "one");
+    CHECK(m.find(1)->second == "one");
     CHECK(m.find(2)->first == 2);
-    CHECK(*m.find(2)->second == "two");
+    CHECK(m.find(2)->second == "two");
     CHECK(m.find(5) == m.end());
 }
 
@@ -268,7 +275,7 @@ TEST_CASE("map string -> int")
     builder b;
 
     {
-        auto map_builder{b.add_map<ptr32<string32>, std::int32_t, std::uint32_t>(5)};
+        auto map_builder{b.add_map<string32, std::int32_t, std::uint32_t>(5)};
 
         *map_builder.add_key(b.add_string("four")) = 4;
 
@@ -285,7 +292,7 @@ TEST_CASE("map string -> int")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<generic_map<ptr32<string32>, std::int32_t, std::uint32_t>>(data)};
+    const auto & m{as<generic_map<string32, std::int32_t, std::uint32_t>>(data)};
 
     REQUIRE(m.size() == 5);
 
@@ -300,7 +307,7 @@ TEST_CASE("map string -> int")
     CHECK_THROWS_AS(m.at("z"), std::out_of_range);
 
     CHECK(m.find("four") == m.begin());
-    CHECK(*m.find("four")->first == "four");
+    CHECK(m.find("four")->first == "four");
     CHECK(m.find("four")->second == 4);
     CHECK(m.find("five") == m.end());
 }
@@ -335,7 +342,6 @@ TEST_CASE("alignment")
         ptr32<std::uint32_t> u32;
         ptr32<std::uint64_t> u64;
         ptr32<std::int8_t> i8;
-        ptr32<string32> s;
         ptr32<std::int16_t> i16;
         ptr32<vector32<std::int32_t>> v32_i32;
         ptr32<std::int32_t> i32;
@@ -364,9 +370,6 @@ TEST_CASE("alignment")
         auto i8 = b.add<std::int8_t>();
         t->i8 = i8;
         *i8 = -8;
-
-        auto s = b.add_string("foo");
-        t->s = s;
 
         auto i16 = b.add<std::int16_t>();
         t->i16 = i16;
@@ -397,8 +400,6 @@ TEST_CASE("alignment")
     CHECK(*t.u32 == 32);
     CHECK(*t.u64 == 64);
     CHECK(*t.i8 == -8);
-    CHECK(t.s->size() == 3);
-    CHECK(*t.s == "foo");
     CHECK(*t.i16 == -16);
     CHECK(t.v32_i32->size() == 1);
     CHECK((*t.v32_i32)[0] == 42);
@@ -411,14 +412,13 @@ TEST_CASE("alignment")
     CHECK(alignment(*t.u32) >= expected_alignment(*t.u32));
     CHECK(alignment(*t.u64) >= expected_alignment(*t.u64));
     CHECK(alignment(*t.i8) >= expected_alignment(*t.i8));
-    CHECK(alignment(*t.s) >= expected_alignment(*t.s));
     CHECK(alignment(*t.i16) >= expected_alignment(*t.i16));
     CHECK(alignment(*t.v32_i32) >= expected_alignment(*t.v32_i32));
     CHECK(alignment(*t.i32) >= expected_alignment(*t.i32));
     CHECK(alignment(*t.v32_d) >= expected_alignment(*t.v32_d));
 
     // Check that we do not waste space with excessive padding
-    CHECK(data.size() == 104);
+    CHECK(data.size() == 88);
 }
 
 TEST_CASE("alignment of vector data")
@@ -455,8 +455,8 @@ TEST_CASE("struct with optionals")
 
     struct test
     {
-        std::optional<ptr32<string32>> s1;
-        std::optional<ptr32<string32>> s2;
+        std::optional<string32> s1;
+        std::optional<string32> s2;
 
         std::optional<ptr32<vector32<std::int32_t>>> v1;
         std::optional<ptr32<vector32<std::int32_t>>> v2;
@@ -466,7 +466,13 @@ TEST_CASE("struct with optionals")
     {
         builder_offset<test> t{b.add<test>()};
 
-        t->s2 = b.add_string("foo");
+        // This does not work because the address of t->s2 is determined before "foo" is added,
+        // which triggers a resizing of the buffer:
+        // t->s2.emplace(b.add_string("foo"));
+
+        // This works because the address of t->s2 is determined after "foo" is added:
+        const auto foo{b.add_string("foo")};
+        t->s2.emplace(foo);
 
         t->v2 = b.add_vector<std::int32_t, std::uint32_t>(0);
 
@@ -482,7 +488,7 @@ TEST_CASE("struct with optionals")
     CHECK(not t.s1);
 
     CHECK(t.s2);
-    CHECK(**t.s2 == "foo");
+    CHECK(*t.s2 == "foo");
 
     CHECK(not t.v1);
 

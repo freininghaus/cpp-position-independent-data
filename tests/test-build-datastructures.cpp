@@ -46,12 +46,12 @@ TEST_CASE("build vector of strings")
     std::vector<std::string> v_input{{"a", "b", "c"}};
     const auto & [result, data] = build_helper(v_input);
 
-    const pid::vector32<pid::ptr<pid::string32, std::int32_t>> & v = *result;
+    const pid::vector32<pid::string32> & v = *result;
 
     REQUIRE(v.size() == 3);
-    CHECK(*v[0] == "a");
-    CHECK(*v[1] == "b");
-    CHECK(*v[2] == "c");
+    CHECK(v[0] == "a");
+    CHECK(v[1] == "b");
+    CHECK(v[2] == "c");
 }
 
 TEST_CASE("build map (int -> int)")
@@ -72,12 +72,12 @@ TEST_CASE("build map (int -> str)")
     std::map<std::int32_t, std::string> m_input{{42, "a"}, {-1, "b"}};
     const auto & [result, data] = build_helper(m_input);
 
-    const pid::map32<std::int32_t, pid::ptr<pid::string32, std::int32_t>> & m = *result;
+    const pid::map32<std::int32_t, pid::string32> & m = *result;
 
     REQUIRE(m.size() == 2);
     CHECK_THROWS_AS(m.at(0), std::out_of_range);
-    CHECK(*m.at(42) == "a");
-    CHECK(*m.at(-1) == "b");
+    CHECK(m.at(42) == "a");
+    CHECK(m.at(-1) == "b");
 }
 
 TEST_CASE("build map (str -> int)")
@@ -85,7 +85,7 @@ TEST_CASE("build map (str -> int)")
     std::map<std::string, std::int32_t> m_input{{"one", 1}, {"two", 2}, {"three", 3}};
     const auto & [result, data] = build_helper(m_input);
 
-    const pid::map32<pid::ptr<pid::string32, std::int32_t>, std::int32_t> & m = *result;
+    const pid::map32<pid::string32, std::int32_t> & m = *result;
 
     REQUIRE(m.size() == 3);
     CHECK_THROWS_AS(m.at("four"), std::out_of_range);
@@ -101,26 +101,24 @@ TEST_CASE("build map (int -> [str])")
         {5, {"five"}}, {6, {"two", "three"}}};
     const auto & [result, data] = build_helper(m_input);
 
-    const pid::map32<
-        std::int32_t,
-        pid::ptr<pid::vector32<pid::ptr<pid::string32, std::int32_t>>, std::int32_t>> & m =
+    const pid::map32<std::int32_t, pid::ptr<pid::vector32<pid::string32>, std::int32_t>> & m =
         *result;
 
     REQUIRE(m.size() == 6);
     CHECK_THROWS_AS(m.at(0), std::out_of_range);
     REQUIRE(m.at(1)->size() == 0);
     REQUIRE(m.at(2)->size() == 1);
-    CHECK(*(*m.at(2))[0] == "two");
+    CHECK((*m.at(2))[0] == "two");
     REQUIRE(m.at(3)->size() == 1);
-    CHECK(*(*m.at(3))[0] == "three");
+    CHECK((*m.at(3))[0] == "three");
     REQUIRE(m.at(4)->size() == 2);
-    CHECK(*(*m.at(4))[0] == "two");
-    CHECK(*(*m.at(4))[1] == "two");
+    CHECK((*m.at(4))[0] == "two");
+    CHECK((*m.at(4))[1] == "two");
     REQUIRE(m.at(5)->size() == 1);
-    CHECK(*(*m.at(5))[0] == "five");
+    CHECK((*m.at(5))[0] == "five");
     REQUIRE(m.at(6)->size() == 2);
-    CHECK(*(*m.at(6))[0] == "two");
-    CHECK(*(*m.at(6))[1] == "three");
+    CHECK((*m.at(6))[0] == "two");
+    CHECK((*m.at(6))[1] == "three");
 }
 
 TEST_CASE("build map (str -> (str -> [int]))")
@@ -133,11 +131,9 @@ TEST_CASE("build map (str -> (str -> [int]))")
     const auto & [result, data] = build_helper(m_input);
 
     const pid::map32<
-        pid::ptr<pid::string32, std::int32_t>,
+        pid::string32,
         pid::ptr<
-            pid::map32<
-                pid::ptr<pid::string32, std::int32_t>,
-                pid::ptr<pid::vector32<std::int32_t>, std::int32_t>>,
+            pid::map32<pid::string32, pid::ptr<pid::vector32<std::int32_t>, std::int32_t>>,
             std::int32_t>> & m = *result;
 
     REQUIRE(m.size() == 3);
@@ -199,7 +195,7 @@ TEST_CASE("test caching 1")
     const auto & [result, data] = build_helper(m_input);
 
     const pid::map32<
-        pid::ptr<pid::string32, std::int32_t>,
+        pid::string32,
         pid::ptr<pid::vector32<pid::ptr<pid::string32, std::int32_t>>, std::int32_t>> & m =
         *result;
 
@@ -218,10 +214,10 @@ TEST_CASE("test caching 1")
     REQUIRE(itB->second->size() == 3);
 
     // Verify deduplication of strings
-    CHECK(&*itA->first == &*(*itB->second)[0]);         // "a"
-    CHECK(&*itB->first == &*(*itB->second)[1]);         // "b"
-    CHECK(&*(*itA->second)[0] == &*(*itC->second)[0]);  // "x"
-    CHECK(&*(*itA->second)[2] == &*(*itC->second)[2]);  // "z
+    CHECK(&*itA->first.data == &*(*itB->second)[0]->data);          // "a"
+    CHECK(&*itB->first.data == &*(*itB->second)[1]->data);          // "b"
+    CHECK(&*(*itA->second)[0]->data == &*(*itC->second)[0]->data);  // "x"
+    CHECK(&*(*itA->second)[2]->data == &*(*itC->second)[2]->data);  // "z
 
     // Verify deduplication of vectors
     CHECK(&*itA->second == &*itC->second);

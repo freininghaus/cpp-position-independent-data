@@ -85,31 +85,21 @@ namespace pid {
     using ptr64 = ptr<T, std::int64_t>;
 
     template <typename SizeType>
-    struct generic_string
+    struct generic_string_data
     {
         SizeType string_length;
         char data[];
 
-        generic_string(const generic_string &) = delete;
+        generic_string_data(const generic_string_data &) = delete;
 
-        generic_string(generic_string &&) = delete;
+        generic_string_data(generic_string_data &&) = delete;
 
-        SizeType size() const
-        {
-            return string_length;
-        }
-
-        bool empty() const
-        {
-            return string_length == 0;
-        }
-
-        [[nodiscard]] const char * begin() const
+        const char * begin() const
         {
             return data;
         }
 
-        [[nodiscard]] const char * end() const
+        const char * end() const
         {
             return data + string_length;
         }
@@ -132,18 +122,75 @@ namespace pid {
         }
 
         template <typename String>
-        friend bool operator<(const String & other, const generic_string<SizeType> & self)
+        friend bool operator<(const String & other, const generic_string_data<SizeType> & self)
+        {
+            return other < std::string_view{self};
+        }
+    };
+
+    template <typename OffsetType, typename SizeType>
+    struct generic_string
+    {
+        ptr<generic_string_data<SizeType>, OffsetType> data;
+
+        auto & operator=(builder_offset<generic_string_data<SizeType>> p)
+        {
+            p.assign_to(data);
+            return *this;
+        }
+
+        SizeType size() const
+        {
+            return data->string_length;
+        }
+
+        bool empty() const
+        {
+            return size() == 0;
+        }
+
+        const char * begin() const
+        {
+            return data->begin();
+        }
+
+        const char * end() const
+        {
+            return data->end();
+        }
+
+        operator std::string_view() const
+        {
+            return {begin(), end()};
+        }
+
+        template <typename String>
+        bool operator==(const String & other) const
+        {
+            return std::string_view{*this} == other;
+        }
+
+        template <typename String>
+        bool operator<(const String & other) const
+        {
+            return std::string_view{*this} < other;
+        }
+
+        template <typename String>
+        friend bool operator<(
+            const String & other, const generic_string<OffsetType, SizeType> & self)
         {
             return other < std::string_view{self};
         }
 
-        friend std::ostream & operator<<(std::ostream & o, const generic_string<SizeType> & s)
+        friend std::ostream & operator<<(
+            std::ostream & o, const generic_string<OffsetType, SizeType> & s)
         {
             return o << std::string_view{s};
         }
     };
 
-    using string32 = generic_string<std::uint32_t>;
+    using string32 = generic_string<std::int32_t, std::uint32_t>;
 
     template <typename T, typename SizeType>
     struct generic_vector
