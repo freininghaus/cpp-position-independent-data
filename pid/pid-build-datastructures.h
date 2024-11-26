@@ -56,7 +56,8 @@ namespace pid {
     struct pid_type : std::conditional<
                           std::is_arithmetic<T>::value || std::is_enum<T>::value, T,
                           // TODO: make offset type configurable
-                          pid::ptr<typename pid_base_type<T>::type, std::int32_t>>
+                          // pid::ptr<typename pid_base_type<T>::type, std::int32_t>
+                          typename pid_base_type<T>::type>
     {
     };
 
@@ -149,8 +150,8 @@ namespace pid {
         }
 
         template <typename T>
-        inline builder_offset<vector32<typename pid_type<T>::type>> operator()(
-            const std::vector<T> & v)
+        inline builder_offset<generic_vector_data<typename pid_type<T>::type, std::uint32_t>>
+        operator()(const std::vector<T> & v)
         {
             auto & cache{get_cache<std::vector<T>>()};
             auto it{cache.find(v)};
@@ -161,9 +162,10 @@ namespace pid {
         }
 
         template <typename T>
-        inline builder_offset<vector32<typename pid_type<T>::type>> build(const std::vector<T> & v)
+        inline builder_offset<generic_vector_data<typename pid_type<T>::type, std::uint32_t>>
+        build(const std::vector<T> & v)
         {
-            builder_offset<vector32<typename pid_type<T>::type>> result =
+            builder_offset<generic_vector_data<typename pid_type<T>::type, std::uint32_t>> result =
                 b.add_vector<typename pid_type<T>::type, std::uint32_t>(v.size());
 
             for (std::size_t index{0}; index < v.size(); ++index) {
@@ -174,7 +176,9 @@ namespace pid {
         }
 
         template <typename Key, typename Value>
-        builder_offset<map32<typename pid_type<Key>::type, typename pid_type<Value>::type>>
+        builder_offset<generic_vector_data<
+            std::pair<typename pid_type<Key>::type, typename pid_type<Value>::type>,
+            std::uint32_t>>
         operator()(const std::map<Key, Value> & m)
         {
             auto result{b.add_map<
@@ -185,7 +189,7 @@ namespace pid {
                 *result.add_key((*this)(key)) = (*this)(value);
             }
 
-            return result.offset();
+            return result.items;
         }
     };
 

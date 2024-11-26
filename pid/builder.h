@@ -64,9 +64,9 @@ namespace pid {
         }
 
         template <typename T, typename SizeType>
-        builder_offset<generic_vector<T, SizeType>> add_vector(SizeType size)
+        builder_offset<generic_vector_data<T, SizeType>> add_vector(SizeType size)
         {
-            auto result{add<generic_vector<T, SizeType>>(size * sizeof(T))};
+            auto result{add<generic_vector_data<T, SizeType>>(size * sizeof(T))};
             result->vector_length = size;
 
             return result;
@@ -77,9 +77,9 @@ namespace pid {
         {
             using MapBuilderType = generic_map_builder<Key, Value, SizeType>;
             using ItemType = typename MapBuilderType::ItemType;
-            using VectorType = typename MapBuilderType::VectorType;
+            using VectorDataType = typename MapBuilderType::VectorDataType;
 
-            const builder_offset<VectorType> items{add_vector<ItemType, SizeType>(size)};
+            const builder_offset<VectorDataType> items{add_vector<ItemType, SizeType>(size)};
             return MapBuilderType{items};
         }
     };
@@ -162,17 +162,11 @@ namespace pid {
     template <typename Key, typename Value, typename SizeType>
     struct generic_map_builder
     {
-        using MapType = generic_map<Key, Value, SizeType>;
-        using VectorType = typename MapType::VectorType;
-        using ItemType = typename MapType::ItemType;
+        using ItemType = std::pair<Key, Value>;
+        using VectorDataType = generic_vector_data<ItemType, SizeType>;
 
-        builder_offset<VectorType> items;
+        builder_offset<VectorDataType> items;
         SizeType current_size{0};
-
-        builder_offset<generic_map<Key, Value, SizeType>> offset() const
-        {
-            return {items.b, items.offset};
-        }
 
         builder_offset<Value> add_key(const Key & key)
         {
@@ -184,7 +178,7 @@ namespace pid {
                 throw std::logic_error{"unsorted"};
             }
 
-            ItemType & item{(*items)[current_size]};
+            auto & item{(*items)[current_size]};
             item.first = key;
 
             auto result{items.b.convert_to_builder_offset(&item.second)};
@@ -208,7 +202,7 @@ namespace pid {
                 }
             }
 
-            ItemType & item{(*items)[current_size]};
+            auto & item{(*items)[current_size]};
             item.first = p;
 
             auto result{items.b.convert_to_builder_offset(&item.second)};

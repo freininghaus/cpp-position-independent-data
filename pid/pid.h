@@ -193,61 +193,109 @@ namespace pid {
     using string32 = generic_string<std::int32_t, std::uint32_t>;
 
     template <typename T, typename SizeType>
-    struct generic_vector
+    struct generic_vector_data
     {
         using const_iterator = const T *;
         using iterator = const_iterator;
 
         SizeType vector_length;
-        T data[];
+        T items[];
 
-        generic_vector(const generic_vector &) = delete;
+        generic_vector_data(const generic_vector_data &) = delete;
 
-        generic_vector(generic_vector &&) = delete;
+        generic_vector_data(generic_vector_data &&) = delete;
 
         SizeType size() const
         {
             return vector_length;
         }
 
-        bool empty() const
-        {
-            return vector_length == 0;
-        }
-
         [[nodiscard]] const_iterator begin() const
         {
-            return data;
+            return items;
         }
 
         [[nodiscard]] const_iterator end() const
         {
-            return data + vector_length;
+            return items + vector_length;
         }
 
         T & operator[](SizeType index)
         {
-            return data[index];
+            return items[index];
         }
 
         const T & operator[](SizeType index) const
         {
-            return data[index];
+            return items[index];
+        }
+    };
+
+    template <typename T, typename OffsetType, typename SizeType>
+    struct generic_vector
+    {
+        using DataType = generic_vector_data<T, SizeType>;
+
+        ptr<DataType, OffsetType> data;
+
+        using const_iterator = DataType::const_iterator;
+        using iterator = const_iterator;
+
+        auto & operator=(builder_offset<generic_vector_data<T, SizeType>> p)
+        {
+            p.assign_to(data);
+            return *this;
+        }
+
+        SizeType size() const
+        {
+            return data->size();
+        }
+
+        bool empty() const
+        {
+            return size() == 0;
+        }
+
+        [[nodiscard]] const_iterator begin() const
+        {
+            return data->begin();
+        }
+
+        [[nodiscard]] const_iterator end() const
+        {
+            return data->end();
+        }
+
+        T & operator[](SizeType index)
+        {
+            return (*data)[index];
+        }
+
+        const T & operator[](SizeType index) const
+        {
+            return (*data)[index];
         }
     };
 
     template <typename T>
-    using vector32 = generic_vector<T, std::uint32_t>;
+    using vector32 = generic_vector<T, std::int32_t, std::uint32_t>;
 
-    template <typename Key, typename Value, typename SizeType>
+    template <typename Key, typename Value, typename OffsetType, typename SizeType>
     struct generic_map
     {
         using ItemType = std::pair<Key, Value>;
-        using VectorType = generic_vector<ItemType, SizeType>;
+        using VectorType = generic_vector<ItemType, OffsetType, SizeType>;
         using const_iterator = typename VectorType::const_iterator;
         using iterator = const_iterator;
 
         VectorType items;
+
+        auto & operator=(builder_offset<generic_vector_data<ItemType, SizeType>> p)
+        {
+            items = p;
+            return *this;
+        }
 
         SizeType size() const
         {
@@ -307,5 +355,5 @@ namespace pid {
     };
 
     template <typename Key, typename Value>
-    using map32 = generic_map<Key, Value, std::uint32_t>;
+    using map32 = generic_map<Key, Value, std::int32_t, std::uint32_t>;
 }

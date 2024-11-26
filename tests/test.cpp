@@ -201,20 +201,26 @@ TEST_CASE("vector of ints")
 {
     using ItemType = std::int8_t;
 
+    struct test
+    {
+        vector32<ItemType> v;
+    };
+
     builder b;
 
     {
+        builder_offset<test> t = b.add<test>();
+
         // TODO: it would be nice if we could omit the SizeType argument (std::uint32_t) here, but
         // then we either have
         //  to cast the size that is passed to add_vector to the desired type, or we have to add
         //  type-specific functions like add_vector32.
-        builder_offset<vector32<ItemType>> offset_vector =
-            b.add_vector<ItemType, std::uint32_t>(3);
-        (*offset_vector)[0] = 42;
-        (*offset_vector)[1] = 0;
-        (*offset_vector)[2] = -1;
+        t->v = b.add_vector<ItemType, std::uint32_t>(3);
+        t->v[0] = 42;
+        t->v[1] = 0;
+        t->v[2] = -1;
 
-        REQUIRE(offset_vector->size() == 3);
+        REQUIRE(t->v.size() == 3);
     }
 
     const auto data{move_builder_data(b)};
@@ -231,7 +237,9 @@ TEST_CASE("map int -> string")
     builder b;
 
     {
+        auto map{b.add<map32<std::int32_t, string32>>()};
         auto map_builder{b.add_map<int32_t, string32, std::uint32_t>(5)};
+        map->items = map_builder.items;
 
         *map_builder.add_key(1) = b.add_string("one");
 
@@ -248,7 +256,7 @@ TEST_CASE("map int -> string")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<generic_map<std::int32_t, string32, std::uint32_t>>(data)};
+    const auto & m{as<map32<std::int32_t, string32>>(data)};
 
     REQUIRE(m.size() == 5);
 
@@ -275,7 +283,9 @@ TEST_CASE("map string -> int")
     builder b;
 
     {
+        auto map{b.add<map32<string32, std::int32_t>>()};
         auto map_builder{b.add_map<string32, std::int32_t, std::uint32_t>(5)};
+        map->items = map_builder.items;
 
         *map_builder.add_key(b.add_string("four")) = 4;
 
@@ -292,7 +302,7 @@ TEST_CASE("map string -> int")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<generic_map<string32, std::int32_t, std::uint32_t>>(data)};
+    const auto & m{as<map32<string32, std::int32_t>>(data)};
 
     REQUIRE(m.size() == 5);
 
@@ -343,9 +353,9 @@ TEST_CASE("alignment")
         ptr32<std::uint64_t> u64;
         ptr32<std::int8_t> i8;
         ptr32<std::int16_t> i16;
-        ptr32<vector32<std::int32_t>> v32_i32;
+        vector32<std::int32_t> v32_i32;
         ptr32<std::int32_t> i32;
-        ptr32<vector32<double>> v32_d;
+        vector32<double> v32_d;
     };
 
     {
@@ -381,7 +391,7 @@ TEST_CASE("alignment")
 
         // important check - accessing items through a builder_offset and a
         // ptr requires const-correctness in ptr::get()
-        REQUIRE(t->v32_i32->size() == 1);
+        REQUIRE(t->v32_i32.size() == 1);
 
         auto i32 = b.add<std::int32_t>();
         t->i32 = i32;
@@ -401,11 +411,11 @@ TEST_CASE("alignment")
     CHECK(*t.u64 == 64);
     CHECK(*t.i8 == -8);
     CHECK(*t.i16 == -16);
-    CHECK(t.v32_i32->size() == 1);
-    CHECK((*t.v32_i32)[0] == 42);
+    CHECK(t.v32_i32.size() == 1);
+    CHECK(t.v32_i32[0] == 42);
     CHECK(*t.i32 == -32);
-    CHECK(t.v32_d->size() == 1);
-    CHECK((*t.v32_d)[0] == 1.5);
+    CHECK(t.v32_d.size() == 1);
+    CHECK(t.v32_d[0] == 1.5);
 
     CHECK(alignment(*t.u8) >= expected_alignment(*t.u8));
     CHECK(alignment(*t.u16) >= expected_alignment(*t.u16));
@@ -413,9 +423,9 @@ TEST_CASE("alignment")
     CHECK(alignment(*t.u64) >= expected_alignment(*t.u64));
     CHECK(alignment(*t.i8) >= expected_alignment(*t.i8));
     CHECK(alignment(*t.i16) >= expected_alignment(*t.i16));
-    CHECK(alignment(*t.v32_i32) >= expected_alignment(*t.v32_i32));
+    CHECK(alignment(t.v32_i32) >= expected_alignment(t.v32_i32));
     CHECK(alignment(*t.i32) >= expected_alignment(*t.i32));
-    CHECK(alignment(*t.v32_d) >= expected_alignment(*t.v32_d));
+    CHECK(alignment(t.v32_d) >= expected_alignment(t.v32_d));
 
     // Check that we do not waste space with excessive padding
     CHECK(data.size() == 88);
@@ -429,7 +439,9 @@ TEST_CASE("alignment of vector data")
     constexpr std::uint64_t n1{0x0300000000000004};
 
     {
-        auto v{b.add_vector<std::uint64_t, std::uint32_t>(2)};
+        auto v{b.add<vector32<std::uint64_t>>()};
+        auto data{b.add_vector<std::uint64_t, std::uint32_t>(2)};
+        v->data = data;
 
         (*v)[0] = n0;
         (*v)[1] = n1;
@@ -446,7 +458,7 @@ TEST_CASE("alignment of vector data")
     CHECK(alignment(v[1]) >= expected_alignment(v[1]));
 
     // Check that we do not waste space with excessive padding
-    CHECK(data.size() == 24);
+    CHECK(data.size() == 32);
 }
 
 TEST_CASE("struct with optionals")
@@ -458,9 +470,9 @@ TEST_CASE("struct with optionals")
         std::optional<string32> s1;
         std::optional<string32> s2;
 
-        std::optional<ptr32<vector32<std::int32_t>>> v1;
-        std::optional<ptr32<vector32<std::int32_t>>> v2;
-        std::optional<ptr32<vector32<std::int32_t>>> v3;
+        std::optional<vector32<std::int32_t>> v1;
+        std::optional<vector32<std::int32_t>> v2;
+        std::optional<vector32<std::int32_t>> v3;
     };
 
     {
@@ -474,7 +486,8 @@ TEST_CASE("struct with optionals")
         const auto foo{b.add_string("foo")};
         t->s2.emplace(foo);
 
-        t->v2 = b.add_vector<std::int32_t, std::uint32_t>(0);
+        const auto v2 = b.add_vector<std::int32_t, std::uint32_t>(0);
+        t->v2.emplace(v2);
 
         auto v3 = b.add_vector<std::int32_t, std::uint32_t>(2);
         t->v3 = v3;
@@ -493,13 +506,13 @@ TEST_CASE("struct with optionals")
     CHECK(not t.v1);
 
     CHECK(t.v2);
-    CHECK((*t.v2)->size() == 0);
-    CHECK((*t.v2)->empty());
+    CHECK(t.v2->size() == 0);
+    CHECK(t.v2->empty());
 
     CHECK(t.v3);
-    CHECK((*t.v3)->size() == 2);
-    CHECK((**t.v3)[0] == 42);
-    CHECK((**t.v3)[1] == -1);
+    CHECK(t.v3->size() == 2);
+    CHECK((*t.v3)[0] == 42);
+    CHECK((*t.v3)[1] == -1);
 }
 
 TEST_CASE("offset overflow")
