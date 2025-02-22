@@ -192,8 +192,17 @@ TEST_CASE("strings")
     const string32 & s_1234{a[2]};
     CHECK(s_1234 == "1234");
     CHECK(s_1234 == std::string{"1234"});
+    CHECK("1234" == s_1234);
     CHECK(std::string{"1234"} == s_1234);
+
+    CHECK(s_1234 != "234");
+    CHECK(s_1234 != std::string{"234"});
+    CHECK("123" != s_1234);
+    CHECK(std::string{"123"} != s_1234);
+
+    CHECK(s_1234 < "234");
     CHECK(s_1234 < std::string{"234"});
+    CHECK("123" < s_1234);
     CHECK(std::string{"123"} < s_1234);
 }
 
