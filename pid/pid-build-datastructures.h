@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pid.h"
+#include "builder.h"
 
 #include <iostream>
 #include <map>
@@ -45,11 +46,18 @@ namespace pid {
         using type = pid::map32<typename pid_type<Key>::type, typename pid_type<Value>::type>;
     };
 
+    template <>
+    struct pid_type<std::string>
+    {
+        using type = pid::string32;
+    };
+
     template <typename T>
     struct pid_type : std::conditional<
                           std::is_arithmetic<T>::value || std::is_enum<T>::value, T,
                           // TODO: make offset type configurable
-                          pid::ptr<typename pid_base_type<T>::type, std::int32_t>>
+                          // pid::ptr<typename pid_base_type<T>::type, std::int32_t>
+                          typename pid_base_type<T>::type>
     {
     };
 
@@ -104,7 +112,7 @@ namespace pid {
             return value;
         }
 
-        inline builder_offset<string32> operator()(const std::string & s)
+        inline builder_offset<generic_string_data<std::uint32_t>> operator()(const std::string & s)
         {
             auto & cache{get_cache<std::string>()};
             auto it{cache.find(s)};
@@ -128,9 +136,22 @@ namespace pid {
             }
         }
 
+        auto operator()(const std::optional<std::string> & o)
+        {
+            // TODO: we could also try to store this as an std::optional<pid::string32>
+            if (o) {
+                const builder_offset<generic_string_data<std::uint32_t>> data{(*this)(*o)};
+                builder_offset<string32> result{b.add<string32>()};
+                *result = data;
+                return result;
+            } else {
+                return builder_offset<generic_string<std::int32_t, std::uint32_t>>{b};
+            }
+        }
+
         template <typename T>
-        inline builder_offset<vector32<typename pid_type<T>::type>> operator()(
-            const std::vector<T> & v)
+        inline builder_offset<generic_vector_data<typename pid_type<T>::type, std::uint32_t>>
+        operator()(const std::vector<T> & v)
         {
             auto & cache{get_cache<std::vector<T>>()};
             auto it{cache.find(v)};
@@ -141,9 +162,10 @@ namespace pid {
         }
 
         template <typename T>
-        inline builder_offset<vector32<typename pid_type<T>::type>> build(const std::vector<T> & v)
+        inline builder_offset<generic_vector_data<typename pid_type<T>::type, std::uint32_t>>
+        build(const std::vector<T> & v)
         {
-            builder_offset<vector32<typename pid_type<T>::type>> result =
+            builder_offset<generic_vector_data<typename pid_type<T>::type, std::uint32_t>> result =
                 b.add_vector<typename pid_type<T>::type, std::uint32_t>(v.size());
 
             for (std::size_t index{0}; index < v.size(); ++index) {
@@ -154,7 +176,9 @@ namespace pid {
         }
 
         template <typename Key, typename Value>
-        builder_offset<map32<typename pid_type<Key>::type, typename pid_type<Value>::type>>
+        builder_offset<generic_vector_data<
+            std::pair<typename pid_type<Key>::type, typename pid_type<Value>::type>,
+            std::uint32_t>>
         operator()(const std::map<Key, Value> & m)
         {
             auto result{b.add_map<
@@ -165,7 +189,7 @@ namespace pid {
                 *result.add_key((*this)(key)) = (*this)(value);
             }
 
-            return result.offset();
+            return result.items;
         }
     };
 

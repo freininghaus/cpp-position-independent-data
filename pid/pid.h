@@ -18,39 +18,21 @@ namespace pid {
         // using ItemType = T;
         offset_type offset;
 
+        ptr() : offset{0} {}
+
         ptr(const struct ptr &) = delete;
 
         ptr(struct ptr &&) = delete;
 
         ptr(builder_offset<T> p)
         {
+            // required for initialization of std::optional<ptr<T>> with '='
             *this = p;
         }
 
         auto & operator=(builder_offset<T> p)
         {
-            if (p) {
-                const char * own_position{reinterpret_cast<const char *>(this)};
-
-                {
-                    const char * builder_data_start{p.b.data.data()};
-                    const char * builder_data_end{p.b.data.data() + p.b.data.size()};
-
-                    if (own_position < builder_data_start or own_position >= builder_data_end) {
-                        throw std::invalid_argument{
-                            "Pointer does not belong to the data of the correct builder"};
-                    }
-                }
-
-                const std::ptrdiff_t offset64 = reinterpret_cast<const char *>(&*p) - own_position;
-                if (offset64 < std::numeric_limits<offset_type>::min()
-                    or offset64 > std::numeric_limits<offset_type>::max()) {
-                    throw std::out_of_range{"Pointer is too far away"};
-                }
-                offset = static_cast<offset_type>(offset64);
-            } else {
-                offset = 0;
-            }
+            p.assign_to(*this);
             return *this;
         }
 
@@ -105,31 +87,21 @@ namespace pid {
     using ptr64 = ptr<T, std::int64_t>;
 
     template <typename SizeType>
-    struct generic_string
+    struct generic_string_data
     {
         SizeType string_length;
         char data[];
 
-        generic_string(const generic_string &) = delete;
+        generic_string_data(const generic_string_data &) = delete;
 
-        generic_string(generic_string &&) = delete;
+        generic_string_data(generic_string_data &&) = delete;
 
-        SizeType size() const
-        {
-            return string_length;
-        }
-
-        bool empty() const
-        {
-            return string_length == 0;
-        }
-
-        [[nodiscard]] const char * begin() const
+        const char * begin() const
         {
             return data;
         }
 
-        [[nodiscard]] const char * end() const
+        const char * end() const
         {
             return data + string_length;
         }
@@ -152,75 +124,221 @@ namespace pid {
         }
 
         template <typename String>
-        friend bool operator<(const String & other, const generic_string<SizeType> & self)
+        friend bool operator<(const String & other, const generic_string_data<SizeType> & self)
+        {
+            return other < std::string_view{self};
+        }
+    };
+
+    template <typename OffsetType, typename SizeType>
+    struct generic_string
+    {
+    private:
+        ptr<generic_string_data<SizeType>, OffsetType> data;
+
+    public:
+        generic_string(const generic_string &) = delete;
+
+        generic_string(generic_string &&) = delete;
+
+        generic_string(builder_offset<generic_string_data<SizeType>> p)
+        {
+            // required for initialization of std::optional<generic_string<OffsetType, SizeType>>
+            // with '='
+            *this = p;
+        }
+
+        auto & operator=(builder_offset<generic_string_data<SizeType>> p)
+        {
+            p.assign_to(data);
+            return *this;
+        }
+
+        SizeType size() const
+        {
+            return data->string_length;
+        }
+
+        bool empty() const
+        {
+            return size() == 0;
+        }
+
+        const char * begin() const
+        {
+            return data->begin();
+        }
+
+        const char * end() const
+        {
+            return data->end();
+        }
+
+        operator std::string_view() const
+        {
+            return {begin(), end()};
+        }
+
+        template <typename String>
+        bool operator==(const String & other) const
+        {
+            return std::string_view{*this} == other;
+        }
+
+        template <typename String>
+        bool operator<(const String & other) const
+        {
+            return std::string_view{*this} < other;
+        }
+
+        template <typename String>
+        friend bool operator<(
+            const String & other, const generic_string<OffsetType, SizeType> & self)
         {
             return other < std::string_view{self};
         }
 
-        friend std::ostream & operator<<(std::ostream & o, const generic_string<SizeType> & s)
+        friend std::ostream & operator<<(
+            std::ostream & o, const generic_string<OffsetType, SizeType> & s)
         {
             return o << std::string_view{s};
         }
     };
 
-    using string32 = generic_string<std::uint32_t>;
+    using string32 = generic_string<std::int32_t, std::uint32_t>;
 
     template <typename T, typename SizeType>
-    struct generic_vector
+    struct generic_vector_data
     {
         using const_iterator = const T *;
         using iterator = const_iterator;
 
         SizeType vector_length;
-        T data[];
+        T items[];
 
-        generic_vector(const generic_vector &) = delete;
+        generic_vector_data(const generic_vector_data &) = delete;
 
-        generic_vector(generic_vector &&) = delete;
+        generic_vector_data(generic_vector_data &&) = delete;
 
         SizeType size() const
         {
             return vector_length;
         }
 
-        bool empty() const
-        {
-            return vector_length == 0;
-        }
-
         [[nodiscard]] const_iterator begin() const
         {
-            return data;
+            return items;
         }
 
         [[nodiscard]] const_iterator end() const
         {
-            return data + vector_length;
+            return items + vector_length;
         }
 
         T & operator[](SizeType index)
         {
-            return data[index];
+            if (index >= 0 and index < vector_length) {
+                return items[index];
+            } else {
+                throw std::out_of_range{"index out of range"};
+            }
         }
 
         const T & operator[](SizeType index) const
         {
-            return data[index];
+            return items[index];
+        }
+    };
+
+    template <typename T, typename OffsetType, typename SizeType>
+    struct generic_vector
+    {
+        using DataType = generic_vector_data<T, SizeType>;
+
+    private:
+        ptr<DataType, OffsetType> data;
+
+    public:
+        using const_iterator = DataType::const_iterator;
+        using iterator = const_iterator;
+
+        generic_vector(const generic_vector &) = delete;
+
+        generic_vector(generic_vector &&) = delete;
+
+        generic_vector(builder_offset<generic_vector_data<T, SizeType>> p)
+        {
+            // required for initialization of std::optional<generic_vector<OffsetType, SizeType>>
+            // with '='
+            *this = p;
+        }
+
+        auto & operator=(builder_offset<generic_vector_data<T, SizeType>> p)
+        {
+            p.assign_to(data);
+            return *this;
+        }
+
+        SizeType size() const
+        {
+            return data->size();
+        }
+
+        bool empty() const
+        {
+            return size() == 0;
+        }
+
+        [[nodiscard]] const_iterator begin() const
+        {
+            return data->begin();
+        }
+
+        [[nodiscard]] const_iterator end() const
+        {
+            return data->end();
+        }
+
+        T & operator[](SizeType index)
+        {
+            return (*data)[index];
+        }
+
+        const T & operator[](SizeType index) const
+        {
+            return (*data)[index];
+        }
+
+        const T & at(SizeType index) const
+        {
+            if (index >= 0 and index < size()) {
+                return (*data)[index];
+            } else {
+                throw std::out_of_range{"index out of range"};
+            }
         }
     };
 
     template <typename T>
-    using vector32 = generic_vector<T, std::uint32_t>;
+    using vector32 = generic_vector<T, std::int32_t, std::uint32_t>;
 
-    template <typename Key, typename Value, typename SizeType>
+    template <typename Key, typename Value, typename OffsetType, typename SizeType>
     struct generic_map
     {
         using ItemType = std::pair<Key, Value>;
-        using VectorType = generic_vector<ItemType, SizeType>;
+        using VectorType = generic_vector<ItemType, OffsetType, SizeType>;
         using const_iterator = typename VectorType::const_iterator;
         using iterator = const_iterator;
 
+    private:
         VectorType items;
+
+    public:
+        auto & operator=(builder_offset<generic_vector_data<ItemType, SizeType>> p)
+        {
+            items = p;
+            return *this;
+        }
 
         SizeType size() const
         {
@@ -280,191 +398,5 @@ namespace pid {
     };
 
     template <typename Key, typename Value>
-    using map32 = generic_map<Key, Value, std::uint32_t>;
-
-    template <typename Key, typename Value, typename SizeType>
-    struct generic_map_builder;
-
-    struct builder
-    {
-        builder() {}
-
-        builder(const builder &) = delete;
-
-        builder(builder &&) = delete;
-
-        std::vector<char> data;
-
-        template <typename T>
-        builder_offset<T> convert_to_builder_offset(T * p)
-        {
-            auto c{reinterpret_cast<const char *>(p)};
-            if (c < data.data() or c > data.data() + data.size()) {
-                throw std::out_of_range{"Pointer does not point to builder data"};
-            }
-
-            const std::size_t offset{
-                static_cast<std::size_t>(reinterpret_cast<char *>(p) - data.data())};
-
-            return {*this, offset};
-        }
-
-        template <typename T>
-        std::size_t next_offset() const
-        {
-            const std::size_t current_ptr{
-                reinterpret_cast<const std::size_t>(data.data()) + data.size()};
-            const std::size_t alignment{alignof(T)};
-            const std::size_t alignment_mask{
-                std::numeric_limits<std::size_t>::max() << (alignment - 1)};
-            const std::size_t padding{(alignment - (current_ptr & ~alignment_mask)) % alignment};
-            return data.size() + padding;
-        }
-
-        template <typename T>
-        builder_offset<T> add(std::size_t extra_bytes = 0)
-        {
-            const auto offset{next_offset<T>()};
-            data.resize(offset + sizeof(T) + extra_bytes);
-            return {*this, offset};
-        }
-
-        template <typename SizeType = std::uint32_t>
-        builder_offset<generic_string<SizeType>> add_string(std::string_view s)
-        {
-            const auto size{s.size()};
-            auto result{add<generic_string<SizeType>>(size + 1)};  // add 1 for null terminator
-            result->string_length = size;
-            std::memcpy(result->data, s.begin(), s.size());
-            result->data[s.size()] = 0;
-
-            return result;
-        }
-
-        template <typename T, typename SizeType>
-        builder_offset<generic_vector<T, SizeType>> add_vector(SizeType size)
-        {
-            auto result{add<generic_vector<T, SizeType>>(size * sizeof(T))};
-            result->vector_length = size;
-
-            return result;
-        }
-
-        template <typename Key, typename Value, typename SizeType>
-        generic_map_builder<Key, Value, SizeType> add_map(SizeType size)
-        {
-            using MapBuilderType = generic_map_builder<Key, Value, SizeType>;
-            using ItemType = typename MapBuilderType::ItemType;
-            using VectorType = typename MapBuilderType::VectorType;
-
-            const builder_offset<VectorType> items{add_vector<ItemType, SizeType>(size)};
-            return MapBuilderType{items};
-        }
-    };
-
-    template <typename T>
-    struct builder_offset
-    {
-        builder & b;
-        const std::size_t offset;
-        const bool valid;
-
-        builder_offset(builder & b) : b{b}, offset{0}, valid{false} {}
-
-        builder_offset(builder & b, std::size_t offset) : b{b}, offset{offset}, valid{true} {}
-
-        builder_offset(const builder_offset & other)
-            : b{other.b}, offset{other.offset}, valid{other.valid}
-        {
-        }
-
-        builder_offset(builder_offset && other)
-            : b{other.b}, offset{other.offset}, valid{other.valid}
-        {
-        }
-
-        explicit operator bool() const
-        {
-            return valid;
-        }
-
-        T & operator*()
-        {
-            return *operator->();
-        }
-
-        const T & operator*() const
-        {
-            return *operator->();
-        }
-
-        T * operator->()
-        {
-            return reinterpret_cast<T *>(b.data.data() + offset);
-        }
-
-        const T * operator->() const
-        {
-            return reinterpret_cast<const T *>(b.data.data() + offset);
-        }
-    };
-
-    template <typename Key, typename Value, typename SizeType>
-    struct generic_map_builder
-    {
-        using MapType = generic_map<Key, Value, SizeType>;
-        using VectorType = typename MapType::VectorType;
-        using ItemType = typename MapType::ItemType;
-
-        builder_offset<VectorType> items;
-        SizeType current_size{0};
-
-        builder_offset<generic_map<Key, Value, SizeType>> offset() const
-        {
-            return {items.b, items.offset};
-        }
-
-        builder_offset<Value> add_key(const Key & key)
-        {
-            if (current_size == items->size()) {
-                throw std::out_of_range{"map is full"};
-            }
-
-            if (current_size > 0 and not((*items)[current_size - 1].first < key)) {
-                throw std::logic_error{"unsorted"};
-            }
-
-            ItemType & item{(*items)[current_size]};
-            item.first = key;
-
-            auto result{items.b.convert_to_builder_offset(&item.second)};
-            ++current_size;
-
-            return result;
-        }
-
-        template <typename Pointer>
-        builder_offset<Value> add_key(Pointer p)
-        {
-            if (current_size == items->size()) {
-                throw std::out_of_range{"map is full"};
-            }
-
-            if (current_size > 0) {
-                const auto & last_item{(*items)[current_size - 1]};
-                const auto & last_key{*last_item.first};
-                if (not(last_key < *p)) {
-                    throw std::logic_error{"unsorted"};
-                }
-            }
-
-            ItemType & item{(*items)[current_size]};
-            item.first = p;
-
-            auto result{items.b.convert_to_builder_offset(&item.second)};
-            ++current_size;
-
-            return result;
-        }
-    };
+    using map32 = generic_map<Key, Value, std::int32_t, std::uint32_t>;
 }

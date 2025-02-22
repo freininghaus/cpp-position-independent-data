@@ -1,4 +1,5 @@
 #include <pid/pid.h>
+#include <pid/builder.h>
 
 #include "catch.hpp"
 
@@ -123,7 +124,9 @@ TEST_CASE("single string")
     builder b;
 
     {
-        b.add_string("Hello world!");
+        auto s = b.add<string32>();
+        auto data = b.add_string("Hello world!");
+        *s = data;
     }
 
     const auto data{move_builder_data(b)};
@@ -140,7 +143,7 @@ TEST_CASE("single string")
 
 TEST_CASE("strings")
 {
-    using StringArray = std::array<ptr32<pid::string32>, 5>;
+    using StringArray = std::array<pid::string32, 5>;
 
     builder b;
 
@@ -150,6 +153,7 @@ TEST_CASE("strings")
         (*offset_array)[1] = b.add_string("a");
         (*offset_array)[2] = b.add_string("1234");
         (*offset_array)[3] = b.add_string("UTF-8: Bäume");
+        // 4th item is default initialized, i.e., empty
     }
 
     const auto data{move_builder_data(b)};
@@ -157,36 +161,48 @@ TEST_CASE("strings")
 
     REQUIRE(a.size() == 5);
 
-    CHECK(a[0]);
-    CHECK(a[0]->size() == 0);
-    CHECK(a[0]->empty());
-    CHECK(*a[0] == "");
-    CHECK("" == *a[0]);
-    CHECK(*a[0]->end() == 0);
+    CHECK(a[0].empty());
+    CHECK(a[0].size() == 0);
+    CHECK(a[0] == "");
+    CHECK("" == a[0]);
+    CHECK(*a[0].end() == 0);
 
-    CHECK(a[1]);
-    CHECK(a[1]->size() == 1);
-    CHECK(*a[1] == "a");
-    CHECK(*a[1]->end() == 0);
+    CHECK(not a[1].empty());
+    CHECK(a[1].size() == 1);
+    CHECK(a[1] == "a");
+    CHECK(*a[1].end() == 0);
 
-    CHECK(a[2]);
-    CHECK(a[2]->size() == 4);
-    CHECK(*a[2] == "1234");
-    CHECK(*a[2]->end() == 0);
+    CHECK(not a[1].empty());
+    CHECK(a[2].size() == 4);
+    CHECK(a[2] == "1234");
+    CHECK(*a[2].end() == 0);
 
-    CHECK(a[3]);
-    CHECK(a[3]->size() == 13);
-    CHECK(*a[3] == "UTF-8: Bäume");
-    CHECK(*a[3]->end() == 0);
+    CHECK(not a[1].empty());
+    CHECK(a[3].size() == 13);
+    CHECK(a[3] == "UTF-8: Bäume");
+    CHECK(*a[3].end() == 0);
 
-    CHECK(not a[4]);
+    CHECK(a[4].empty());
+    CHECK(a[4].size() == 0);
+    CHECK(a[4] == "");
+    CHECK("" == a[4]);
+    CHECK(*a[4].end() == 0);
 
     // Test comparisons
-    const string32 & s_1234{*a[2]};
+    const string32 & s_1234{a[2]};
     CHECK(s_1234 == "1234");
     CHECK(s_1234 == std::string{"1234"});
+    CHECK("1234" == s_1234);
     CHECK(std::string{"1234"} == s_1234);
+
+    CHECK(s_1234 != "234");
+    CHECK(s_1234 != std::string{"234"});
+    CHECK("123" != s_1234);
+    CHECK(std::string{"123"} != s_1234);
+
+    CHECK(s_1234 < "234");
     CHECK(s_1234 < std::string{"234"});
+    CHECK("123" < s_1234);
     CHECK(std::string{"123"} < s_1234);
 }
 
@@ -194,20 +210,28 @@ TEST_CASE("vector of ints")
 {
     using ItemType = std::int8_t;
 
+    struct test
+    {
+        vector32<ItemType> v;
+    };
+
     builder b;
 
     {
+        builder_offset<test> t = b.add<test>();
+
         // TODO: it would be nice if we could omit the SizeType argument (std::uint32_t) here, but
         // then we either have
         //  to cast the size that is passed to add_vector to the desired type, or we have to add
         //  type-specific functions like add_vector32.
-        builder_offset<vector32<ItemType>> offset_vector =
-            b.add_vector<ItemType, std::uint32_t>(3);
-        (*offset_vector)[0] = 42;
-        (*offset_vector)[1] = 0;
-        (*offset_vector)[2] = -1;
+        t->v = b.add_vector<ItemType, std::uint32_t>(3);
+        t->v[0] = 42;
+        t->v[1] = 0;
+        t->v[2] = -1;
 
-        REQUIRE(offset_vector->size() == 3);
+        CHECK_THROWS_AS(t->v[1 << 24] = 99, std::out_of_range);
+
+        REQUIRE(t->v.size() == 3);
     }
 
     const auto data{move_builder_data(b)};
@@ -217,6 +241,12 @@ TEST_CASE("vector of ints")
     CHECK(v[0] == 42);
     CHECK(v[1] == 0);
     CHECK(v[2] == -1);
+
+    CHECK(v.at(0) == 42);
+    CHECK(v.at(1) == 0);
+    CHECK(v.at(2) == -1);
+
+    CHECK_THROWS_AS(v.at(3), std::out_of_range);
 }
 
 TEST_CASE("map int -> string")
@@ -224,7 +254,9 @@ TEST_CASE("map int -> string")
     builder b;
 
     {
-        auto map_builder{b.add_map<int32_t, ptr32<string32>, std::uint32_t>(5)};
+        auto map{b.add<map32<std::int32_t, string32>>()};
+        auto map_builder{b.add_map<int32_t, string32, std::uint32_t>(5)};
+        *map = map_builder.items;
 
         *map_builder.add_key(1) = b.add_string("one");
 
@@ -241,14 +273,15 @@ TEST_CASE("map int -> string")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<generic_map<std::int32_t, ptr32<string32>, std::uint32_t>>(data)};
+    const auto & m{as<map32<std::int32_t, string32>>(data)};
 
     REQUIRE(m.size() == 5);
-    CHECK(*m.at(1) == "one");
-    CHECK(*m.at(2) == "two");
-    CHECK(*m.at(3) == "three");
-    CHECK(*m.at(4) == "four");
-    CHECK(*m.at(6) == "six");
+
+    CHECK(m.at(1) == "one");
+    CHECK(m.at(2) == "two");
+    CHECK(m.at(3) == "three");
+    CHECK(m.at(4) == "four");
+    CHECK(m.at(6) == "six");
 
     CHECK_THROWS_AS(m.at(0), std::out_of_range);
     CHECK_THROWS_AS(m.at(5), std::out_of_range);
@@ -256,9 +289,9 @@ TEST_CASE("map int -> string")
 
     CHECK(m.find(1) == m.begin());
     CHECK(m.find(1)->first == 1);
-    CHECK(*m.find(1)->second == "one");
+    CHECK(m.find(1)->second == "one");
     CHECK(m.find(2)->first == 2);
-    CHECK(*m.find(2)->second == "two");
+    CHECK(m.find(2)->second == "two");
     CHECK(m.find(5) == m.end());
 }
 
@@ -267,7 +300,9 @@ TEST_CASE("map string -> int")
     builder b;
 
     {
-        auto map_builder{b.add_map<ptr32<string32>, std::int32_t, std::uint32_t>(5)};
+        auto map{b.add<map32<string32, std::int32_t>>()};
+        auto map_builder{b.add_map<string32, std::int32_t, std::uint32_t>(5)};
+        *map = map_builder.items;
 
         *map_builder.add_key(b.add_string("four")) = 4;
 
@@ -284,7 +319,7 @@ TEST_CASE("map string -> int")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<generic_map<ptr32<string32>, std::int32_t, std::uint32_t>>(data)};
+    const auto & m{as<map32<string32, std::int32_t>>(data)};
 
     REQUIRE(m.size() == 5);
 
@@ -299,9 +334,28 @@ TEST_CASE("map string -> int")
     CHECK_THROWS_AS(m.at("z"), std::out_of_range);
 
     CHECK(m.find("four") == m.begin());
-    CHECK(*m.find("four")->first == "four");
+    CHECK(m.find("four")->first == "four");
     CHECK(m.find("four")->second == 4);
     CHECK(m.find("five") == m.end());
+}
+
+namespace {
+    auto alignment(const auto & rel)
+    {
+        const auto p{&rel};
+
+        std::size_t result{1};
+        while (not(reinterpret_cast<const std::size_t>(p) & result)) {
+            result <<= 1;
+        }
+
+        return result;
+    };
+
+    auto expected_alignment(const auto & p)
+    {
+        return alignof(decltype(p));
+    };
 }
 
 TEST_CASE("alignment")
@@ -315,11 +369,10 @@ TEST_CASE("alignment")
         ptr32<std::uint32_t> u32;
         ptr32<std::uint64_t> u64;
         ptr32<std::int8_t> i8;
-        ptr32<string32> s;
         ptr32<std::int16_t> i16;
-        ptr32<vector32<std::int32_t>> v32_i32;
+        vector32<std::int32_t> v32_i32;
         ptr32<std::int32_t> i32;
-        ptr32<vector32<double>> v32_d;
+        vector32<double> v32_d;
     };
 
     {
@@ -345,9 +398,6 @@ TEST_CASE("alignment")
         t->i8 = i8;
         *i8 = -8;
 
-        auto s = b.add_string("foo");
-        t->s = s;
-
         auto i16 = b.add<std::int16_t>();
         t->i16 = i16;
         *i16 = -16;
@@ -358,7 +408,7 @@ TEST_CASE("alignment")
 
         // important check - accessing items through a builder_offset and a
         // ptr requires const-correctness in ptr::get()
-        REQUIRE(t->v32_i32->size() == 1);
+        REQUIRE(t->v32_i32.size() == 1);
 
         auto i32 = b.add<std::int32_t>();
         t->i32 = i32;
@@ -377,41 +427,55 @@ TEST_CASE("alignment")
     CHECK(*t.u32 == 32);
     CHECK(*t.u64 == 64);
     CHECK(*t.i8 == -8);
-    CHECK(t.s->size() == 3);
-    CHECK(*t.s == "foo");
     CHECK(*t.i16 == -16);
-    CHECK(t.v32_i32->size() == 1);
-    CHECK((*t.v32_i32)[0] == 42);
+    CHECK(t.v32_i32.size() == 1);
+    CHECK(t.v32_i32[0] == 42);
     CHECK(*t.i32 == -32);
-    CHECK(t.v32_d->size() == 1);
-    CHECK((*t.v32_d)[0] == 1.5);
+    CHECK(t.v32_d.size() == 1);
+    CHECK(t.v32_d[0] == 1.5);
 
-    const auto alignment = [&](const auto & rel) {
-        const auto p{&*rel};
-
-        std::size_t result{1};
-        while (not(reinterpret_cast<const std::size_t>(p) & result)) {
-            result <<= 1;
-        }
-
-        return result;
-    };
-
-    const auto expected_alignment = [](const auto & p) { return alignof(decltype(*p)); };
-
-    CHECK(alignment(t.u8) >= expected_alignment(t.u8));
-    CHECK(alignment(t.u16) >= expected_alignment(t.u16));
-    CHECK(alignment(t.u32) >= expected_alignment(t.u32));
-    CHECK(alignment(t.u64) >= expected_alignment(t.u64));
-    CHECK(alignment(t.i8) >= expected_alignment(t.i8));
-    CHECK(alignment(t.s) >= expected_alignment(t.s));
-    CHECK(alignment(t.i16) >= expected_alignment(t.i16));
+    CHECK(alignment(*t.u8) >= expected_alignment(*t.u8));
+    CHECK(alignment(*t.u16) >= expected_alignment(*t.u16));
+    CHECK(alignment(*t.u32) >= expected_alignment(*t.u32));
+    CHECK(alignment(*t.u64) >= expected_alignment(*t.u64));
+    CHECK(alignment(*t.i8) >= expected_alignment(*t.i8));
+    CHECK(alignment(*t.i16) >= expected_alignment(*t.i16));
     CHECK(alignment(t.v32_i32) >= expected_alignment(t.v32_i32));
-    CHECK(alignment(t.i32) >= expected_alignment(t.i32));
+    CHECK(alignment(*t.i32) >= expected_alignment(*t.i32));
     CHECK(alignment(t.v32_d) >= expected_alignment(t.v32_d));
 
     // Check that we do not waste space with excessive padding
-    CHECK(data.size() == 104);
+    CHECK(data.size() == 88);
+}
+
+TEST_CASE("alignment of vector data")
+{
+    builder b;
+
+    constexpr std::uint64_t n0{0x0100000000000002};
+    constexpr std::uint64_t n1{0x0300000000000004};
+
+    {
+        auto v{b.add<vector32<std::uint64_t>>()};
+        auto data{b.add_vector<std::uint64_t, std::uint32_t>(2)};
+        *v = data;
+
+        (*v)[0] = n0;
+        (*v)[1] = n1;
+    }
+
+    const auto data{move_builder_data(b)};
+    const auto & v{as<vector32<std::uint64_t>>(data)};
+
+    REQUIRE(v.size() == 2);
+    CHECK(v[0] == n0);
+    CHECK(v[1] == n1);
+
+    CHECK(alignment(v[0]) >= expected_alignment(v[0]));
+    CHECK(alignment(v[1]) >= expected_alignment(v[1]));
+
+    // Check that we do not waste space with excessive padding
+    CHECK(data.size() == 32);
 }
 
 TEST_CASE("struct with optionals")
@@ -420,20 +484,27 @@ TEST_CASE("struct with optionals")
 
     struct test
     {
-        std::optional<ptr32<string32>> s1;
-        std::optional<ptr32<string32>> s2;
+        std::optional<string32> s1;
+        std::optional<string32> s2;
 
-        std::optional<ptr32<vector32<std::int32_t>>> v1;
-        std::optional<ptr32<vector32<std::int32_t>>> v2;
-        std::optional<ptr32<vector32<std::int32_t>>> v3;
+        std::optional<vector32<std::int32_t>> v1;
+        std::optional<vector32<std::int32_t>> v2;
+        std::optional<vector32<std::int32_t>> v3;
     };
 
     {
         builder_offset<test> t{b.add<test>()};
 
-        t->s2 = b.add_string("foo");
+        // This does not work because the address of t->s2 is determined before "foo" is added,
+        // which triggers a resizing of the buffer:
+        // t->s2.emplace(b.add_string("foo"));
 
-        t->v2 = b.add_vector<std::int32_t, std::uint32_t>(0);
+        // This works because the address of t->s2 is determined after "foo" is added:
+        const auto foo{b.add_string("foo")};
+        t->s2.emplace(foo);
+
+        const auto v2 = b.add_vector<std::int32_t, std::uint32_t>(0);
+        t->v2.emplace(v2);
 
         auto v3 = b.add_vector<std::int32_t, std::uint32_t>(2);
         t->v3 = v3;
@@ -447,18 +518,18 @@ TEST_CASE("struct with optionals")
     CHECK(not t.s1);
 
     CHECK(t.s2);
-    CHECK(**t.s2 == "foo");
+    CHECK(*t.s2 == "foo");
 
     CHECK(not t.v1);
 
     CHECK(t.v2);
-    CHECK((*t.v2)->size() == 0);
-    CHECK((*t.v2)->empty());
+    CHECK(t.v2->size() == 0);
+    CHECK(t.v2->empty());
 
     CHECK(t.v3);
-    CHECK((*t.v3)->size() == 2);
-    CHECK((**t.v3)[0] == 42);
-    CHECK((**t.v3)[1] == -1);
+    CHECK(t.v3->size() == 2);
+    CHECK((*t.v3)[0] == 42);
+    CHECK((*t.v3)[1] == -1);
 }
 
 TEST_CASE("offset overflow")
