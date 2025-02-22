@@ -251,10 +251,23 @@ namespace pid {
     {
         using DataType = generic_vector_data<T, SizeType>;
 
+    private:
         ptr<DataType, OffsetType> data;
 
+    public:
         using const_iterator = DataType::const_iterator;
         using iterator = const_iterator;
+
+        generic_vector(const generic_vector &) = delete;
+
+        generic_vector(generic_vector &&) = delete;
+
+        generic_vector(builder_offset<generic_vector_data<T, SizeType>> p)
+        {
+            // required for initialization of std::optional<generic_vector<OffsetType, SizeType>>
+            // with '='
+            *this = p;
+        }
 
         auto & operator=(builder_offset<generic_vector_data<T, SizeType>> p)
         {

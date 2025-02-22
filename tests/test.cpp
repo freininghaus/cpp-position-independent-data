@@ -441,7 +441,7 @@ TEST_CASE("alignment of vector data")
     {
         auto v{b.add<vector32<std::uint64_t>>()};
         auto data{b.add_vector<std::uint64_t, std::uint32_t>(2)};
-        v->data = data;
+        *v = data;
 
         (*v)[0] = n0;
         (*v)[1] = n1;

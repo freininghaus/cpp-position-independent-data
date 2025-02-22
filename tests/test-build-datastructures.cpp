@@ -37,7 +37,7 @@ auto build_helper(const T & value)
             // Add a top-level vector to simplify testing of vector functions
             const auto items{d_builder(value)};
             auto result{builder.add<vector32<typename pid_type<typename T::value_type>::type>>()};
-            result->data = items;
+            *result = items;
             return result;
         } else if constexpr (is_map<T>::value) {
             // Add a top-level map to simplify testing of map functions
