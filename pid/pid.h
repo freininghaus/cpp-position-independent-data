@@ -237,7 +237,11 @@ namespace pid {
 
         T & operator[](SizeType index)
         {
-            return items[index];
+            if (index >= 0 and index < vector_length) {
+                return items[index];
+            } else {
+                throw std::out_of_range{"index out of range"};
+            }
         }
 
         const T & operator[](SizeType index) const
@@ -303,6 +307,15 @@ namespace pid {
         const T & operator[](SizeType index) const
         {
             return (*data)[index];
+        }
+
+        const T & at(SizeType index) const
+        {
+            if (index >= 0 and index < size()) {
+                return (*data)[index];
+            } else {
+                throw std::out_of_range{"index out of range"};
+            }
         }
     };
 

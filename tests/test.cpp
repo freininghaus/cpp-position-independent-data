@@ -220,6 +220,8 @@ TEST_CASE("vector of ints")
         t->v[1] = 0;
         t->v[2] = -1;
 
+        CHECK_THROWS_AS(t->v[1 << 24] = 99, std::out_of_range);
+
         REQUIRE(t->v.size() == 3);
     }
 
@@ -230,6 +232,12 @@ TEST_CASE("vector of ints")
     CHECK(v[0] == 42);
     CHECK(v[1] == 0);
     CHECK(v[2] == -1);
+
+    CHECK(v.at(0) == 42);
+    CHECK(v.at(1) == 0);
+    CHECK(v.at(2) == -1);
+
+    CHECK_THROWS_AS(v.at(3), std::out_of_range);
 }
 
 TEST_CASE("map int -> string")
