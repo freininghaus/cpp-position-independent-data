@@ -45,7 +45,7 @@ auto build_helper(const T & value)
             auto result{builder.add<map32<
                 typename pid_type<typename T::key_type>::type,
                 typename pid_type<typename T::mapped_type>::type>>()};
-            result->items = items;
+            *result = items;
             return result;
         } else {
             return d_builder(value);

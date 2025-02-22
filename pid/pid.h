@@ -330,8 +330,10 @@ namespace pid {
         using const_iterator = typename VectorType::const_iterator;
         using iterator = const_iterator;
 
+    private:
         VectorType items;
 
+    public:
         auto & operator=(builder_offset<generic_vector_data<ItemType, SizeType>> p)
         {
             items = p;

@@ -247,7 +247,7 @@ TEST_CASE("map int -> string")
     {
         auto map{b.add<map32<std::int32_t, string32>>()};
         auto map_builder{b.add_map<int32_t, string32, std::uint32_t>(5)};
-        map->items = map_builder.items;
+        *map = map_builder.items;
 
         *map_builder.add_key(1) = b.add_string("one");
 
@@ -293,7 +293,7 @@ TEST_CASE("map string -> int")
     {
         auto map{b.add<map32<string32, std::int32_t>>()};
         auto map_builder{b.add_map<string32, std::int32_t, std::uint32_t>(5)};
-        map->items = map_builder.items;
+        *map = map_builder.items;
 
         *map_builder.add_key(b.add_string("four")) = 4;
 
