@@ -142,7 +142,7 @@ namespace pid {
             if (o) {
                 const builder_offset<generic_string_data<std::uint32_t>> data{(*this)(*o)};
                 builder_offset<string32> result{b.add<string32>()};
-                result->data = data;
+                *result = data;
                 return result;
             } else {
                 return builder_offset<generic_string<std::int32_t, std::uint32_t>>{b};

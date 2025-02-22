@@ -126,7 +126,7 @@ TEST_CASE("single string")
     {
         auto s = b.add<string32>();
         auto data = b.add_string("Hello world!");
-        s->data = data;
+        *s = data;
     }
 
     const auto data{move_builder_data(b)};

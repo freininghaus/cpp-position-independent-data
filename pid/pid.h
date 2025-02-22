@@ -18,6 +18,8 @@ namespace pid {
         // using ItemType = T;
         offset_type offset;
 
+        ptr() : offset{0} {}
+
         ptr(const struct ptr &) = delete;
 
         ptr(struct ptr &&) = delete;
@@ -131,7 +133,20 @@ namespace pid {
     template <typename OffsetType, typename SizeType>
     struct generic_string
     {
+    private:
         ptr<generic_string_data<SizeType>, OffsetType> data;
+
+    public:
+        generic_string(const generic_string &) = delete;
+
+        generic_string(generic_string &&) = delete;
+
+        generic_string(builder_offset<generic_string_data<SizeType>> p)
+        {
+            // required for initialization of std::optional<generic_string<OffsetType, SizeType>>
+            // with '='
+            *this = p;
+        }
 
         auto & operator=(builder_offset<generic_string_data<SizeType>> p)
         {

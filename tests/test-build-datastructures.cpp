@@ -246,13 +246,13 @@ TEST_CASE("test caching 1")
     REQUIRE(itB->second.size() == 3);
 
     // Verify deduplication of strings
-    CHECK(&*itA->first.data == &*itB->second[0]->data);       // "a"
-    CHECK(&*itB->first.data == &*itB->second[1]->data);       // "b"
-    CHECK(&*itA->second[0]->data == &*itC->second[0]->data);  // "x"
-    CHECK(&*itA->second[2]->data == &*itC->second[2]->data);  // "z
+    CHECK(&*itA->first.begin() == &*itB->second[0]->begin());       // "a"
+    CHECK(&*itB->first.begin() == &*itB->second[1]->begin());       // "b"
+    CHECK(&*itA->second[0]->begin() == &*itC->second[0]->begin());  // "x"
+    CHECK(&*itA->second[2]->begin() == &*itC->second[2]->begin());  // "z
 
     // Verify deduplication of vectors
-    CHECK(&*itA->second.data == &*itC->second.data);
+    CHECK(&*itA->second.begin() == &*itC->second.begin());
 }
 
 // TODO: deduplication of maps
