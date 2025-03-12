@@ -90,8 +90,8 @@ TEST_CASE("nested struct")
 
     struct line
     {
-        ptr32<point> a;
-        ptr32<point> b;
+        pid32::ptr<point> a;
+        pid32::ptr<point> b;
     };
 
     builder b;
@@ -124,13 +124,13 @@ TEST_CASE("single string")
     builder b;
 
     {
-        auto s = b.add<string32>();
+        auto s = b.add<pid32::string32>();
         auto data = b.add_string("Hello world!");
         *s = data;
     }
 
     const auto data{move_builder_data(b)};
-    const string32 & s{as<string32>(data)};
+    const pid32::string32 & s{as<pid32::string32>(data)};
 
     CHECK(s.size() == 12);
     CHECK(std::string_view{s} == "Hello world!");
@@ -143,7 +143,7 @@ TEST_CASE("single string")
 
 TEST_CASE("strings")
 {
-    using StringArray = std::array<pid::string32, 5>;
+    using StringArray = std::array<pid32::string32, 5>;
 
     builder b;
 
@@ -189,7 +189,7 @@ TEST_CASE("strings")
     CHECK(*a[4].end() == 0);
 
     // Test comparisons
-    const string32 & s_1234{a[2]};
+    const pid32::string32 & s_1234{a[2]};
     CHECK(s_1234 == "1234");
     CHECK(s_1234 == std::string{"1234"});
     CHECK("1234" == s_1234);
@@ -212,7 +212,7 @@ TEST_CASE("vector of ints")
 
     struct test
     {
-        vector32<ItemType> v;
+        pid32::vector32<ItemType> v;
     };
 
     builder b;
@@ -223,7 +223,7 @@ TEST_CASE("vector of ints")
         // TODO: it would be nice if we could omit the SizeType argument (std::uint32_t) here, but
         // then we either have
         //  to cast the size that is passed to add_vector to the desired type, or we have to add
-        //  type-specific functions like add_vector32.
+        //  type-specific functions like add_pid32::vector32.
         t->v = b.add_vector<ItemType, std::uint32_t>(3);
         t->v[0] = 42;
         t->v[1] = 0;
@@ -235,7 +235,7 @@ TEST_CASE("vector of ints")
     }
 
     const auto data{move_builder_data(b)};
-    const vector32<ItemType> & v{as<vector32<ItemType>>(data)};
+    const pid32::vector32<ItemType> & v{as<pid32::vector32<ItemType>>(data)};
 
     REQUIRE(v.size() == 3);
     CHECK(v[0] == 42);
@@ -254,8 +254,8 @@ TEST_CASE("map int -> string")
     builder b;
 
     {
-        auto map{b.add<map32<std::int32_t, string32>>()};
-        auto map_builder{b.add_map<int32_t, string32, std::uint32_t>(5)};
+        auto map{b.add<pid32::map32<std::int32_t, pid32::string32>>()};
+        auto map_builder{b.add_map<int32_t, pid32::string32, std::uint32_t>(5)};
         *map = map_builder.items;
 
         *map_builder.add_key(1) = b.add_string("one");
@@ -273,7 +273,7 @@ TEST_CASE("map int -> string")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<map32<std::int32_t, string32>>(data)};
+    const auto & m{as<pid32::map32<std::int32_t, pid32::string32>>(data)};
 
     REQUIRE(m.size() == 5);
 
@@ -300,8 +300,8 @@ TEST_CASE("map string -> int")
     builder b;
 
     {
-        auto map{b.add<map32<string32, std::int32_t>>()};
-        auto map_builder{b.add_map<string32, std::int32_t, std::uint32_t>(5)};
+        auto map{b.add<pid32::map32<pid32::string32, std::int32_t>>()};
+        auto map_builder{b.add_map<pid32::string32, std::int32_t, std::uint32_t>(5)};
         *map = map_builder.items;
 
         *map_builder.add_key(b.add_string("four")) = 4;
@@ -319,7 +319,7 @@ TEST_CASE("map string -> int")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & m{as<map32<string32, std::int32_t>>(data)};
+    const auto & m{as<pid32::map32<pid32::string32, std::int32_t>>(data)};
 
     REQUIRE(m.size() == 5);
 
@@ -364,15 +364,15 @@ TEST_CASE("alignment")
 
     struct test
     {
-        ptr32<std::uint8_t> u8;
-        ptr32<std::uint16_t> u16;
-        ptr32<std::uint32_t> u32;
-        ptr32<std::uint64_t> u64;
-        ptr32<std::int8_t> i8;
-        ptr32<std::int16_t> i16;
-        vector32<std::int32_t> v32_i32;
-        ptr32<std::int32_t> i32;
-        vector32<double> v32_d;
+        pid32::ptr<std::uint8_t> u8;
+        pid32::ptr<std::uint16_t> u16;
+        pid32::ptr<std::uint32_t> u32;
+        pid32::ptr<std::uint64_t> u64;
+        pid32::ptr<std::int8_t> i8;
+        pid32::ptr<std::int16_t> i16;
+        pid32::vector32<std::int32_t> v32_i32;
+        pid32::ptr<std::int32_t> i32;
+        pid32::vector32<double> v32_d;
     };
 
     {
@@ -456,7 +456,7 @@ TEST_CASE("alignment of vector data")
     constexpr std::uint64_t n1{0x0300000000000004};
 
     {
-        auto v{b.add<vector32<std::uint64_t>>()};
+        auto v{b.add<pid32::vector32<std::uint64_t>>()};
         auto data{b.add_vector<std::uint64_t, std::uint32_t>(2)};
         *v = data;
 
@@ -465,7 +465,7 @@ TEST_CASE("alignment of vector data")
     }
 
     const auto data{move_builder_data(b)};
-    const auto & v{as<vector32<std::uint64_t>>(data)};
+    const auto & v{as<pid32::vector32<std::uint64_t>>(data)};
 
     REQUIRE(v.size() == 2);
     CHECK(v[0] == n0);
@@ -484,12 +484,12 @@ TEST_CASE("struct with optionals")
 
     struct test
     {
-        std::optional<string32> s1;
-        std::optional<string32> s2;
+        std::optional<pid32::string32> s1;
+        std::optional<pid32::string32> s2;
 
-        std::optional<vector32<std::int32_t>> v1;
-        std::optional<vector32<std::int32_t>> v2;
-        std::optional<vector32<std::int32_t>> v3;
+        std::optional<pid32::vector32<std::int32_t>> v1;
+        std::optional<pid32::vector32<std::int32_t>> v2;
+        std::optional<pid32::vector32<std::int32_t>> v3;
     };
 
     {
@@ -536,7 +536,7 @@ TEST_CASE("offset overflow")
 {
     struct s
     {
-        ptr8<std::int32_t> a;
+        pid8::ptr<std::int32_t> a;
     };
 
     builder b;
@@ -569,8 +569,8 @@ TEST_CASE("different builder")
 {
     struct s
     {
-        ptr32<std::int32_t> a;
-        ptr32<std::int32_t> b;
+        pid32::ptr<std::int32_t> a;
+        pid32::ptr<std::int32_t> b;
     };
 
     builder b1;

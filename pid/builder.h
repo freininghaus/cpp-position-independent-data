@@ -111,7 +111,7 @@ namespace pid {
         }
 
         template <typename offset_type>
-        void assign_to(ptr<T, offset_type> & dest) const
+        void assign_to(detail::ptr<T, offset_type> & dest) const
         {
             if (*this) {
                 const char * dest_position{reinterpret_cast<const char *>(&dest)};

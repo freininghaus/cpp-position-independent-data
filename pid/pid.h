@@ -12,79 +12,70 @@ namespace pid {
     template <typename T>
     struct builder_offset;
 
-    template <typename T, typename offset_type>
-    struct ptr
-    {
-        // using ItemType = T;
-        offset_type offset;
-
-        ptr() : offset{0} {}
-
-        ptr(const struct ptr &) = delete;
-
-        ptr(struct ptr &&) = delete;
-
-        ptr(builder_offset<T> p)
+    namespace detail {
+        template <typename T, typename offset_type>
+        struct ptr
         {
-            // required for initialization of std::optional<ptr<T>> with '='
-            *this = p;
-        }
+            // using ItemType = T;
+            offset_type offset;
 
-        auto & operator=(builder_offset<T> p)
-        {
-            p.assign_to(*this);
-            return *this;
-        }
+            ptr() : offset{0} {}
 
-        explicit operator bool() const
-        {
-            return offset != 0;
-        }
+            ptr(const struct ptr &) = delete;
 
-        T & operator*()
-        {
-            return *operator->();
-        }
+            ptr(struct ptr &&) = delete;
 
-        const T & operator*() const
-        {
-            return *operator->();
-        }
+            ptr(builder_offset<T> p)
+            {
+                // required for initialization of std::optional<ptr<T>> with '='
+                *this = p;
+            }
 
-        T * operator->()
-        {
-            return get<T *>();
-        }
+            auto & operator=(builder_offset<T> p)
+            {
+                p.assign_to(*this);
+                return *this;
+            }
 
-        const T * operator->() const
-        {
-            return get<const T *>();
-        }
+            explicit operator bool() const
+            {
+                return offset != 0;
+            }
 
-        template <typename Pointer>
-        const Pointer get() const
-        {
-            return reinterpret_cast<const Pointer>(reinterpret_cast<const char *>(this) + offset);
-        }
+            T & operator*()
+            {
+                return *operator->();
+            }
 
-        template <typename Pointer>
-        Pointer get()
-        {
-            return reinterpret_cast<Pointer>(reinterpret_cast<char *>(this) + offset);
-        }
-    };
+            const T & operator*() const
+            {
+                return *operator->();
+            }
 
-    template <typename T>
-    using ptr8 = ptr<T, std::int8_t>;
+            T * operator->()
+            {
+                return get<T *>();
+            }
 
-    template <typename T>
-    using ptr16 = ptr<T, std::int16_t>;
+            const T * operator->() const
+            {
+                return get<const T *>();
+            }
 
-    template <typename T>
-    using ptr32 = ptr<T, std::int32_t>;
+            template <typename Pointer>
+            const Pointer get() const
+            {
+                return reinterpret_cast<const Pointer>(
+                    reinterpret_cast<const char *>(this) + offset);
+            }
 
-    template <typename T>
-    using ptr64 = ptr<T, std::int64_t>;
+            template <typename Pointer>
+            Pointer get()
+            {
+                return reinterpret_cast<Pointer>(reinterpret_cast<char *>(this) + offset);
+            }
+        };
+    }
 
     template <typename SizeType>
     struct generic_string_data
@@ -130,82 +121,82 @@ namespace pid {
         }
     };
 
-    template <typename OffsetType, typename SizeType>
-    struct generic_string
-    {
-    private:
-        ptr<generic_string_data<SizeType>, OffsetType> data;
-
-    public:
-        generic_string(const generic_string &) = delete;
-
-        generic_string(generic_string &&) = delete;
-
-        generic_string(builder_offset<generic_string_data<SizeType>> p)
+    namespace detail {
+        template <typename OffsetType, typename SizeType>
+        struct generic_string
         {
-            // required for initialization of std::optional<generic_string<OffsetType, SizeType>>
-            // with '='
-            *this = p;
-        }
+        private:
+            ptr<generic_string_data<SizeType>, OffsetType> data;
 
-        auto & operator=(builder_offset<generic_string_data<SizeType>> p)
-        {
-            p.assign_to(data);
-            return *this;
-        }
+        public:
+            generic_string(const generic_string &) = delete;
 
-        SizeType size() const
-        {
-            return data->string_length;
-        }
+            generic_string(generic_string &&) = delete;
 
-        bool empty() const
-        {
-            return size() == 0;
-        }
+            generic_string(builder_offset<generic_string_data<SizeType>> p)
+            {
+                // required for initialization of std::optional<generic_string<OffsetType,
+                // SizeType>> with '='
+                *this = p;
+            }
 
-        const char * begin() const
-        {
-            return data->begin();
-        }
+            auto & operator=(builder_offset<generic_string_data<SizeType>> p)
+            {
+                p.assign_to(data);
+                return *this;
+            }
 
-        const char * end() const
-        {
-            return data->end();
-        }
+            SizeType size() const
+            {
+                return data->string_length;
+            }
 
-        operator std::string_view() const
-        {
-            return {begin(), end()};
-        }
+            bool empty() const
+            {
+                return size() == 0;
+            }
 
-        template <typename String>
-        bool operator==(const String & other) const
-        {
-            return std::string_view{*this} == other;
-        }
+            const char * begin() const
+            {
+                return data->begin();
+            }
 
-        template <typename String>
-        bool operator<(const String & other) const
-        {
-            return std::string_view{*this} < other;
-        }
+            const char * end() const
+            {
+                return data->end();
+            }
 
-        template <typename String>
-        friend bool operator<(
-            const String & other, const generic_string<OffsetType, SizeType> & self)
-        {
-            return other < std::string_view{self};
-        }
+            operator std::string_view() const
+            {
+                return {begin(), end()};
+            }
 
-        friend std::ostream & operator<<(
-            std::ostream & o, const generic_string<OffsetType, SizeType> & s)
-        {
-            return o << std::string_view{s};
-        }
-    };
+            template <typename String>
+            bool operator==(const String & other) const
+            {
+                return std::string_view{*this} == other;
+            }
 
-    using string32 = generic_string<std::int32_t, std::uint32_t>;
+            template <typename String>
+            bool operator<(const String & other) const
+            {
+                return std::string_view{*this} < other;
+            }
+
+            template <typename String>
+            friend bool operator<(
+                const String & other, const generic_string<OffsetType, SizeType> & self)
+            {
+                return other < std::string_view{self};
+            }
+
+            friend std::ostream & operator<<(
+                std::ostream & o, const generic_string<OffsetType, SizeType> & s)
+            {
+                return o << std::string_view{s};
+            }
+        };
+    }
 
     template <typename T, typename SizeType>
     struct generic_vector_data
@@ -250,153 +241,291 @@ namespace pid {
         }
     };
 
-    template <typename T, typename OffsetType, typename SizeType>
-    struct generic_vector
-    {
-        using DataType = generic_vector_data<T, SizeType>;
-
-    private:
-        ptr<DataType, OffsetType> data;
-
-    public:
-        using const_iterator = DataType::const_iterator;
-        using iterator = const_iterator;
-
-        generic_vector(const generic_vector &) = delete;
-
-        generic_vector(generic_vector &&) = delete;
-
-        generic_vector(builder_offset<generic_vector_data<T, SizeType>> p)
+    namespace detail {
+        template <typename T, typename OffsetType, typename SizeType>
+        struct generic_vector
         {
-            // required for initialization of std::optional<generic_vector<OffsetType, SizeType>>
-            // with '='
-            *this = p;
-        }
+            using DataType = generic_vector_data<T, SizeType>;
 
-        auto & operator=(builder_offset<generic_vector_data<T, SizeType>> p)
-        {
-            p.assign_to(data);
-            return *this;
-        }
+        private:
+            ptr<DataType, OffsetType> data;
 
-        SizeType size() const
-        {
-            return data->size();
-        }
+        public:
+            using const_iterator = DataType::const_iterator;
+            using iterator = const_iterator;
 
-        bool empty() const
-        {
-            return size() == 0;
-        }
+            generic_vector(const generic_vector &) = delete;
 
-        [[nodiscard]] const_iterator begin() const
-        {
-            return data->begin();
-        }
+            generic_vector(generic_vector &&) = delete;
 
-        [[nodiscard]] const_iterator end() const
-        {
-            return data->end();
-        }
+            generic_vector(builder_offset<generic_vector_data<T, SizeType>> p)
+            {
+                // required for initialization of std::optional<generic_vector<OffsetType,
+                // SizeType>> with '='
+                *this = p;
+            }
 
-        T & operator[](SizeType index)
-        {
-            return (*data)[index];
-        }
+            auto & operator=(builder_offset<generic_vector_data<T, SizeType>> p)
+            {
+                p.assign_to(data);
+                return *this;
+            }
 
-        const T & operator[](SizeType index) const
-        {
-            return (*data)[index];
-        }
+            SizeType size() const
+            {
+                return data->size();
+            }
 
-        const T & at(SizeType index) const
-        {
-            if (index >= 0 and index < size()) {
+            bool empty() const
+            {
+                return size() == 0;
+            }
+
+            [[nodiscard]] const_iterator begin() const
+            {
+                return data->begin();
+            }
+
+            [[nodiscard]] const_iterator end() const
+            {
+                return data->end();
+            }
+
+            T & operator[](SizeType index)
+            {
                 return (*data)[index];
-            } else {
-                throw std::out_of_range{"index out of range"};
-            }
-        }
-    };
-
-    template <typename T>
-    using vector32 = generic_vector<T, std::int32_t, std::uint32_t>;
-
-    template <typename Key, typename Value, typename OffsetType, typename SizeType>
-    struct generic_map
-    {
-        using ItemType = std::pair<Key, Value>;
-        using VectorType = generic_vector<ItemType, OffsetType, SizeType>;
-        using const_iterator = typename VectorType::const_iterator;
-        using iterator = const_iterator;
-
-    private:
-        VectorType items;
-
-    public:
-        auto & operator=(builder_offset<generic_vector_data<ItemType, SizeType>> p)
-        {
-            items = p;
-            return *this;
-        }
-
-        SizeType size() const
-        {
-            return items.size();
-        }
-
-        [[nodiscard]] const_iterator begin() const
-        {
-            return items.begin();
-        }
-
-        [[nodiscard]] const_iterator end() const
-        {
-            return items.end();
-        }
-
-        template <typename CompatibleKey>
-        const_iterator find(const CompatibleKey & key) const
-        {
-            const auto it{std::lower_bound(
-                items.begin(), items.end(), key,
-                [](const auto & map_item, const CompatibleKey & key) {
-                    return get_key(map_item) < key;
-                })};
-
-            if (it == items.end() || get_key(*it) != key) {
-                return end();
             }
 
-            return it;
-        }
-
-        template <typename CompatibleKey>
-        const Value & at(const CompatibleKey & key) const
-        {
-            const auto it{find(key)};
-
-            if (it == end()) {
-                throw std::out_of_range{"key not found"};
+            const T & operator[](SizeType index) const
+            {
+                return (*data)[index];
             }
 
-            return it->second;
-        }
-
-    private:
-        template <typename T, typename offset_type>
-        static const auto & get_key(const std::pair<ptr<T, offset_type>, Value> & map_item)
-        {
-            return *map_item.first;
-        }
+            const T & at(SizeType index) const
+            {
+                if (index >= 0 and index < size()) {
+                    return (*data)[index];
+                } else {
+                    throw std::out_of_range{"index out of range"};
+                }
+            }
+        };
 
         template <typename T>
-        static const auto & get_key(const std::pair<T, Value> & map_item)
+        using vector32 = generic_vector<T, std::int32_t, std::uint32_t>;
+
+        template <typename Key, typename Value, typename OffsetType, typename SizeType>
+        struct generic_map
         {
-            return map_item.first;
-        }
-    };
+            using ItemType = std::pair<Key, Value>;
+            using VectorType = generic_vector<ItemType, OffsetType, SizeType>;
+            using const_iterator = typename VectorType::const_iterator;
+            using iterator = const_iterator;
+
+        private:
+            VectorType items;
+
+        public:
+            auto & operator=(builder_offset<generic_vector_data<ItemType, SizeType>> p)
+            {
+                items = p;
+                return *this;
+            }
+
+            SizeType size() const
+            {
+                return items.size();
+            }
+
+            [[nodiscard]] const_iterator begin() const
+            {
+                return items.begin();
+            }
+
+            [[nodiscard]] const_iterator end() const
+            {
+                return items.end();
+            }
+
+            template <typename CompatibleKey>
+            const_iterator find(const CompatibleKey & key) const
+            {
+                const auto it{std::lower_bound(
+                    items.begin(), items.end(), key,
+                    [](const auto & map_item, const CompatibleKey & key) {
+                        return get_key(map_item) < key;
+                    })};
+
+                if (it == items.end() || get_key(*it) != key) {
+                    return end();
+                }
+
+                return it;
+            }
+
+            template <typename CompatibleKey>
+            const Value & at(const CompatibleKey & key) const
+            {
+                const auto it{find(key)};
+
+                if (it == end()) {
+                    throw std::out_of_range{"key not found"};
+                }
+
+                return it->second;
+            }
+
+        private:
+            template <typename T, typename offset_type>
+            static const auto & get_key(const std::pair<ptr<T, offset_type>, Value> & map_item)
+            {
+                return *map_item.first;
+            }
+
+            template <typename T>
+            static const auto & get_key(const std::pair<T, Value> & map_item)
+            {
+                return map_item.first;
+            }
+        };
+
+        template <typename Key, typename Value>
+        using map32 = generic_map<Key, Value, std::int32_t, std::uint32_t>;
+    }
+}
+
+namespace pid8 {
+    template <typename T>
+    using ptr = pid::detail::ptr<T, std::int8_t>;
+
+    using string8 = pid::detail::generic_string<std::int8_t, std::uint8_t>;
+    using string16 = pid::detail::generic_string<std::int8_t, std::uint16_t>;
+    using string32 = pid::detail::generic_string<std::int8_t, std::uint32_t>;
+    using string64 = pid::detail::generic_string<std::int8_t, std::uint64_t>;
+
+    template <typename T>
+    using vector8 = pid::detail::generic_vector<T, std::int8_t, std::uint8_t>;
+
+    template <typename T>
+    using vector16 = pid::detail::generic_vector<T, std::int8_t, std::uint16_t>;
+
+    template <typename T>
+    using vector32 = pid::detail::generic_vector<T, std::int8_t, std::uint32_t>;
+
+    template <typename T>
+    using vector64 = pid::detail::generic_vector<T, std::int8_t, std::uint64_t>;
 
     template <typename Key, typename Value>
-    using map32 = generic_map<Key, Value, std::int32_t, std::uint32_t>;
+    using map8 = pid::detail::generic_map<Key, Value, std::int8_t, std::uint8_t>;
+
+    template <typename Key, typename Value>
+    using map16 = pid::detail::generic_map<Key, Value, std::int8_t, std::uint16_t>;
+
+    template <typename Key, typename Value>
+    using map32 = pid::detail::generic_map<Key, Value, std::int8_t, std::uint32_t>;
+
+    template <typename Key, typename Value>
+    using map64 = pid::detail::generic_map<Key, Value, std::int8_t, std::uint64_t>;
+}
+
+namespace pid16 {
+    template <typename T>
+    using ptr = pid::detail::ptr<T, std::int16_t>;
+
+    using string8 = pid::detail::generic_string<std::int16_t, std::uint8_t>;
+    using string16 = pid::detail::generic_string<std::int16_t, std::uint16_t>;
+    using string32 = pid::detail::generic_string<std::int16_t, std::uint32_t>;
+    using string64 = pid::detail::generic_string<std::int16_t, std::uint64_t>;
+
+    template <typename T>
+    using vector8 = pid::detail::generic_vector<T, std::int16_t, std::uint8_t>;
+
+    template <typename T>
+    using vector16 = pid::detail::generic_vector<T, std::int16_t, std::uint16_t>;
+
+    template <typename T>
+    using vector32 = pid::detail::generic_vector<T, std::int16_t, std::uint32_t>;
+
+    template <typename T>
+    using vector64 = pid::detail::generic_vector<T, std::int16_t, std::uint64_t>;
+
+    template <typename Key, typename Value>
+    using map8 = pid::detail::generic_map<Key, Value, std::int16_t, std::uint8_t>;
+
+    template <typename Key, typename Value>
+    using map16 = pid::detail::generic_map<Key, Value, std::int16_t, std::uint16_t>;
+
+    template <typename Key, typename Value>
+    using map32 = pid::detail::generic_map<Key, Value, std::int16_t, std::uint32_t>;
+
+    template <typename Key, typename Value>
+    using map64 = pid::detail::generic_map<Key, Value, std::int16_t, std::uint64_t>;
+}
+
+namespace pid32 {
+    template <typename T>
+    using ptr = pid::detail::ptr<T, std::int32_t>;
+
+    using string8 = pid::detail::generic_string<std::int32_t, std::uint8_t>;
+    using string16 = pid::detail::generic_string<std::int32_t, std::uint16_t>;
+    using string32 = pid::detail::generic_string<std::int32_t, std::uint32_t>;
+    using string64 = pid::detail::generic_string<std::int32_t, std::uint64_t>;
+
+    template <typename T>
+    using vector8 = pid::detail::generic_vector<T, std::int32_t, std::uint8_t>;
+
+    template <typename T>
+    using vector16 = pid::detail::generic_vector<T, std::int32_t, std::uint16_t>;
+
+    template <typename T>
+    using vector32 = pid::detail::generic_vector<T, std::int32_t, std::uint32_t>;
+
+    template <typename T>
+    using vector64 = pid::detail::generic_vector<T, std::int32_t, std::uint64_t>;
+
+    template <typename Key, typename Value>
+    using map8 = pid::detail::generic_map<Key, Value, std::int32_t, std::uint8_t>;
+
+    template <typename Key, typename Value>
+    using map16 = pid::detail::generic_map<Key, Value, std::int32_t, std::uint16_t>;
+
+    template <typename Key, typename Value>
+    using map32 = pid::detail::generic_map<Key, Value, std::int32_t, std::uint32_t>;
+
+    template <typename Key, typename Value>
+    using map64 = pid::detail::generic_map<Key, Value, std::int32_t, std::uint64_t>;
+}
+
+namespace pid64 {
+    template <typename T>
+    using ptr = pid::detail::ptr<T, std::int64_t>;
+
+    using string8 = pid::detail::generic_string<std::int64_t, std::uint8_t>;
+    using string16 = pid::detail::generic_string<std::int64_t, std::uint16_t>;
+    using string32 = pid::detail::generic_string<std::int64_t, std::uint32_t>;
+    using string64 = pid::detail::generic_string<std::int64_t, std::uint64_t>;
+
+    template <typename T>
+    using vector8 = pid::detail::generic_vector<T, std::int64_t, std::uint8_t>;
+
+    template <typename T>
+    using vector16 = pid::detail::generic_vector<T, std::int64_t, std::uint16_t>;
+
+    template <typename T>
+    using vector32 = pid::detail::generic_vector<T, std::int64_t, std::uint32_t>;
+
+    template <typename T>
+    using vector64 = pid::detail::generic_vector<T, std::int64_t, std::uint64_t>;
+
+    template <typename Key, typename Value>
+    using map8 = pid::detail::generic_map<Key, Value, std::int64_t, std::uint8_t>;
+
+    template <typename Key, typename Value>
+    using map16 = pid::detail::generic_map<Key, Value, std::int64_t, std::uint16_t>;
+
+    template <typename Key, typename Value>
+    using map32 = pid::detail::generic_map<Key, Value, std::int64_t, std::uint32_t>;
+
+    template <typename Key, typename Value>
+    using map64 = pid::detail::generic_map<Key, Value, std::int64_t, std::uint64_t>;
 }
