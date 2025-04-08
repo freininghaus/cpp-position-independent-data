@@ -151,7 +151,9 @@ namespace pid {
             return std::string_view{*this} < other;
         }
 
-        template <typename String>
+        template <
+            typename String, typename = std::enable_if_t<not std::is_same_v<
+                                 std::decay_t<String>, generic_string<SizeType>>>>
         friend bool operator<(const String & other, const generic_string<SizeType> & self)
         {
             return other < std::string_view{self};
