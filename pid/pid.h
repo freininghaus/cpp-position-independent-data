@@ -75,53 +75,51 @@ namespace pid {
                 return reinterpret_cast<Pointer>(reinterpret_cast<char *>(this) + offset);
             }
         };
-    }
 
-    template <typename SizeType>
-    struct generic_string_data
-    {
-        SizeType string_length;
-        char data[];
-
-        generic_string_data(const generic_string_data &) = delete;
-
-        generic_string_data(generic_string_data &&) = delete;
-
-        const char * begin() const
+        template <typename SizeType>
+        struct generic_string_data
         {
-            return data;
-        }
+            SizeType string_length;
+            char data[];
 
-        const char * end() const
-        {
-            return data + string_length;
-        }
+            generic_string_data(const generic_string_data &) = delete;
 
-        operator std::string_view() const
-        {
-            return {begin(), end()};
-        }
+            generic_string_data(generic_string_data &&) = delete;
 
-        template <typename String>
-        bool operator==(const String & other) const
-        {
-            return std::string_view{*this} == other;
-        }
+            const char * begin() const
+            {
+                return data;
+            }
 
-        template <typename String>
-        bool operator<(const String & other) const
-        {
-            return std::string_view{*this} < other;
-        }
+            const char * end() const
+            {
+                return data + string_length;
+            }
 
-        template <typename String>
-        friend bool operator<(const String & other, const generic_string_data<SizeType> & self)
-        {
-            return other < std::string_view{self};
-        }
-    };
+            operator std::string_view() const
+            {
+                return {begin(), end()};
+            }
 
-    namespace detail {
+            template <typename String>
+            bool operator==(const String & other) const
+            {
+                return std::string_view{*this} == other;
+            }
+
+            template <typename String>
+            bool operator<(const String & other) const
+            {
+                return std::string_view{*this} < other;
+            }
+
+            template <typename String>
+            friend bool operator<(const String & other, const generic_string_data<SizeType> & self)
+            {
+                return other < std::string_view{self};
+            }
+        };
+
         template <typename OffsetType, typename SizeType>
         struct generic_string
         {
@@ -196,52 +194,50 @@ namespace pid {
                 return o << std::string_view{s};
             }
         };
-    }
 
-    template <typename T, typename SizeType>
-    struct generic_vector_data
-    {
-        using const_iterator = const T *;
-        using iterator = const_iterator;
-
-        SizeType vector_length;
-        T items[];
-
-        generic_vector_data(const generic_vector_data &) = delete;
-
-        generic_vector_data(generic_vector_data &&) = delete;
-
-        SizeType size() const
+        template <typename T, typename SizeType>
+        struct generic_vector_data
         {
-            return vector_length;
-        }
+            using const_iterator = const T *;
+            using iterator = const_iterator;
 
-        [[nodiscard]] const_iterator begin() const
-        {
-            return items;
-        }
+            SizeType vector_length;
+            T items[];
 
-        [[nodiscard]] const_iterator end() const
-        {
-            return items + vector_length;
-        }
+            generic_vector_data(const generic_vector_data &) = delete;
 
-        T & operator[](SizeType index)
-        {
-            if (index >= 0 and index < vector_length) {
-                return items[index];
-            } else {
-                throw std::out_of_range{"index out of range"};
+            generic_vector_data(generic_vector_data &&) = delete;
+
+            SizeType size() const
+            {
+                return vector_length;
             }
-        }
 
-        const T & operator[](SizeType index) const
-        {
-            return items[index];
-        }
-    };
+            [[nodiscard]] const_iterator begin() const
+            {
+                return items;
+            }
 
-    namespace detail {
+            [[nodiscard]] const_iterator end() const
+            {
+                return items + vector_length;
+            }
+
+            T & operator[](SizeType index)
+            {
+                if (index >= 0 and index < vector_length) {
+                    return items[index];
+                } else {
+                    throw std::out_of_range{"index out of range"};
+                }
+            }
+
+            const T & operator[](SizeType index) const
+            {
+                return items[index];
+            }
+        };
+
         template <typename T, typename OffsetType, typename SizeType>
         struct generic_vector
         {
