@@ -36,13 +36,14 @@ auto build_helper(const T & value)
         if constexpr (is_vector<T>::value) {
             // Add a top-level vector to simplify testing of vector functions
             const auto items{d_builder(value)};
-            auto result{builder.add<vector32<typename pid_type<typename T::value_type>::type>>()};
+            auto result{
+                builder.add<pid32::vector32<typename pid_type<typename T::value_type>::type>>()};
             *result = items;
             return result;
         } else if constexpr (is_map<T>::value) {
             // Add a top-level map to simplify testing of map functions
             const auto items{d_builder(value)};
-            auto result{builder.add<map32<
+            auto result{builder.add<pid32::map32<
                 typename pid_type<typename T::key_type>::type,
                 typename pid_type<typename T::mapped_type>::type>>()};
             *result = items;
@@ -69,7 +70,7 @@ TEST_CASE("build vector of ints")
     std::vector<std::int32_t> v_input{{1, 1, 2, 3, 5, 8}};
     const auto & [result, data] = build_helper(v_input);
 
-    const pid::vector32<std::int32_t> & v{*result};
+    const pid32::vector32<std::int32_t> & v{*result};
 
     REQUIRE(v.size() == 6);
     CHECK(v[0] == 1);
@@ -85,7 +86,7 @@ TEST_CASE("build vector of strings")
     std::vector<std::string> v_input{{"a", "b", "c"}};
     const auto & [result, data] = build_helper(v_input);
 
-    const pid::vector32<pid::string32> & v = *result;
+    const pid32::vector32<pid32::string32> & v = *result;
 
     REQUIRE(v.size() == 3);
     CHECK(v[0] == "a");
@@ -98,7 +99,7 @@ TEST_CASE("build map (int -> int)")
     std::map<std::int32_t, std::int32_t> m_input{{42, 1}, {-1, 2}};
     const auto & [result, data] = build_helper(m_input);
 
-    const pid::map32<std::int32_t, std::int32_t> & m{*result};
+    const pid32::map32<std::int32_t, std::int32_t> & m{*result};
 
     REQUIRE(m.size() == 2);
     CHECK_THROWS_AS(m.at(0), std::out_of_range);
@@ -111,7 +112,7 @@ TEST_CASE("build map (int -> str)")
     std::map<std::int32_t, std::string> m_input{{42, "a"}, {-1, "b"}};
     const auto & [result, data] = build_helper(m_input);
 
-    const pid::map32<std::int32_t, pid::string32> & m = *result;
+    const pid32::map32<std::int32_t, pid32::string32> & m = *result;
 
     REQUIRE(m.size() == 2);
     CHECK_THROWS_AS(m.at(0), std::out_of_range);
@@ -124,7 +125,7 @@ TEST_CASE("build map (str -> int)")
     std::map<std::string, std::int32_t> m_input{{"one", 1}, {"two", 2}, {"three", 3}};
     const auto & [result, data] = build_helper(m_input);
 
-    const pid::map32<pid::string32, std::int32_t> & m = *result;
+    const pid32::map32<pid32::string32, std::int32_t> & m = *result;
 
     REQUIRE(m.size() == 3);
     CHECK_THROWS_AS(m.at("four"), std::out_of_range);
@@ -140,7 +141,7 @@ TEST_CASE("build map (int -> [str])")
         {5, {"five"}}, {6, {"two", "three"}}};
     const auto & [result, data] = build_helper(m_input);
 
-    const pid::map32<std::int32_t, pid::vector32<pid::string32>> & m = *result;
+    const pid32::map32<std::int32_t, pid32::vector32<pid32::string32>> & m = *result;
 
     REQUIRE(m.size() == 6);
     CHECK_THROWS_AS(m.at(0), std::out_of_range);
@@ -168,7 +169,8 @@ TEST_CASE("build map (str -> (str -> [int]))")
     }};
     const auto & [result, data] = build_helper(m_input);
 
-    const pid::map32<pid::string32, pid::map32<pid::string32, pid::vector32<std::int32_t>>> & m =
+    const pid32::map32<
+        pid32::string32, pid32::map32<pid32::string32, pid32::vector32<std::int32_t>>> & m =
         *result;
 
     REQUIRE(m.size() == 3);
@@ -190,7 +192,7 @@ TEST_CASE("build vector of optional ints")
     std::vector<std::optional<std::int32_t>> v_input{{1, std::nullopt, 2, 3, 5, 8}};
     const auto & [result, data] = build_helper(v_input);
 
-    const pid::vector32<std::optional<std::int32_t>> & v = *result;
+    const pid32::vector32<std::optional<std::int32_t>> & v = *result;
 
     REQUIRE(v.size() == 6);
     CHECK(v[0]);
@@ -211,7 +213,7 @@ TEST_CASE("build vector of optional strings")
     std::vector<std::optional<std::string>> v_input{{"a", std::nullopt, "b", "c"}};
     const auto & [result, data] = build_helper(v_input);
 
-    const pid::vector32<pid::ptr<pid::string32, std::int32_t>> & v = *result;
+    const pid32::vector32<pid32::ptr<pid32::string32>> & v = *result;
 
     REQUIRE(v.size() == 4);
     CHECK(*v[0] == "a");
@@ -229,7 +231,8 @@ TEST_CASE("test caching 1")
 
     const auto & [result, data] = build_helper(m_input);
 
-    const pid::map32<pid::string32, pid::vector32<pid::ptr32<pid::string32>>> & m = *result;
+    const pid32::map32<pid32::string32, pid32::vector32<pid32::ptr<pid32::string32>>> & m =
+        *result;
 
     REQUIRE(m.size() == 3);
 

@@ -51,11 +51,11 @@ namespace pid {
         }
 
         template <typename SizeType = std::uint32_t>
-        builder_offset<generic_string_data<SizeType>> add_string(std::string_view s)
+        builder_offset<detail::generic_string_data<SizeType>> add_string(std::string_view s)
         {
             const auto size{s.size()};
-            auto result{
-                add<generic_string_data<SizeType>>(size + 1)};  // add 1 for null terminator
+            auto result{add<detail::generic_string_data<SizeType>>(
+                size + 1)};  // add 1 for null terminator
             result->string_length = size;
             std::memcpy(result->data, s.begin(), s.size());
             result->data[s.size()] = 0;
@@ -64,9 +64,9 @@ namespace pid {
         }
 
         template <typename T, typename SizeType>
-        builder_offset<generic_vector_data<T, SizeType>> add_vector(SizeType size)
+        builder_offset<detail::generic_vector_data<T, SizeType>> add_vector(SizeType size)
         {
-            auto result{add<generic_vector_data<T, SizeType>>(size * sizeof(T))};
+            auto result{add<detail::generic_vector_data<T, SizeType>>(size * sizeof(T))};
             result->vector_length = size;
 
             return result;
@@ -111,7 +111,7 @@ namespace pid {
         }
 
         template <typename offset_type>
-        void assign_to(ptr<T, offset_type> & dest) const
+        void assign_to(detail::ptr<T, offset_type> & dest) const
         {
             if (*this) {
                 const char * dest_position{reinterpret_cast<const char *>(&dest)};
@@ -163,7 +163,7 @@ namespace pid {
     struct generic_map_builder
     {
         using ItemType = std::pair<Key, Value>;
-        using VectorDataType = generic_vector_data<ItemType, SizeType>;
+        using VectorDataType = detail::generic_vector_data<ItemType, SizeType>;
 
         builder_offset<VectorDataType> items;
         SizeType current_size{0};
