@@ -307,9 +307,6 @@ namespace pid {
             }
         };
 
-        template <typename T>
-        using vector32 = generic_vector<T, std::int32_t, std::uint32_t>;
-
         template <typename Key, typename Value, typename OffsetType, typename SizeType>
         struct generic_map
         {
