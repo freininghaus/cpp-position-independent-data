@@ -168,6 +168,11 @@ namespace pid {
         builder_offset<VectorDataType> items;
         SizeType current_size{0};
 
+        builder_offset<detail::generic_vector_data<ItemType, SizeType>> offset() const
+        {
+            return {items.b, items.offset};
+        }
+
         builder_offset<Value> add_key(const Key & key)
         {
             if (current_size == items->size()) {
