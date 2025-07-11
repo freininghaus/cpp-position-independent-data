@@ -123,8 +123,10 @@ namespace pid {
         template <typename OffsetType, typename SizeType>
         struct generic_string
         {
+            using DataType = generic_string_data<SizeType>;
+
         private:
-            ptr<generic_string_data<SizeType>, OffsetType> data;
+            ptr<DataType, OffsetType> data;
 
         public:
             generic_string(const generic_string &) = delete;
@@ -312,6 +314,7 @@ namespace pid {
         {
             using ItemType = std::pair<Key, Value>;
             using VectorType = generic_vector<ItemType, OffsetType, SizeType>;
+            using DataType = typename VectorType::DataType;
             using const_iterator = typename VectorType::const_iterator;
             using iterator = const_iterator;
 
