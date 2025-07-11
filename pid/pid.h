@@ -522,3 +522,17 @@ namespace pid64 {
     template <typename Key, typename Value>
     using map64 = pid::detail::generic_map<Key, Value, std::int64_t, std::uint64_t>;
 }
+
+namespace pid {
+    // Convenience typedefs for types with 32 bit offsets and 32 bit container sizes
+    template <typename T>
+    using ptr = pid32::ptr<T>;
+
+    using string = pid32::string32;
+
+    template <typename T>
+    using vector = pid32::vector32<T>;
+
+    template <typename Key, typename Value>
+    using map = pid32::map32<Key, Value>;
+}
