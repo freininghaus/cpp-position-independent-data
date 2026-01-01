@@ -160,16 +160,10 @@ namespace pid {
             }
 
             template <typename String>
-            bool operator<(const String & other) const
+            auto operator<=>(const String & other) const -> std::enable_if_t<
+                std::is_convertible_v<String, std::string_view>, std::strong_ordering>
             {
-                return std::string_view{*this} < other;
-            }
-
-            template <typename String>
-            friend bool operator<(
-                const String & other, const generic_string<OffsetType, SizeType> & self)
-            {
-                return other < std::string_view{self};
+                return std::string_view{*this} <=> other;
             }
 
             friend std::ostream & operator<<(
