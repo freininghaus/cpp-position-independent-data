@@ -6,6 +6,8 @@ namespace pid {
     template <typename Key, typename Value, typename SizeType>
     struct generic_map_builder;
 
+    struct builder_offset_mover;
+
     struct builder
     {
         builder() {}
@@ -81,6 +83,40 @@ namespace pid {
 
             const builder_offset<VectorDataType> items{add_vector<ItemType, SizeType>(size)};
             return MapBuilderType{items};
+        }
+
+        struct builder_offset_mover
+        {
+            builder & destination;
+            const builder & source;
+
+            const std::size_t additional_offset;
+
+            template <typename T>
+            builder_offset<T> operator()(const builder_offset<T> & source_offset) const
+            {
+                if (&source_offset.b != &source) {
+                    throw std::invalid_argument{
+                        "builder_offset does not point to the data of the correct builder"};
+                }
+
+                if (not source_offset) {
+                    return {destination};
+                }
+
+                return {destination, source_offset.offset + additional_offset};
+            }
+        };
+
+        // By default, we assume that the data in 'other' needs 64-bit alignment.
+        template <typename AlignmentType = std::uint64_t>
+        builder_offset_mover add_sub_builder(const builder & other)
+        {
+            const auto offset{next_offset<AlignmentType>()};
+            data.resize(offset + other.data.size());
+            std::memcpy(data.data() + offset, other.data.data(), other.data.size());
+
+            return builder_offset_mover{*this, other, offset};
         }
     };
 

@@ -7,6 +7,8 @@
 
 #include "pid-debug.h"
 
+#include <thread>
+
 using namespace pid;
 
 std::vector<char> move_builder_data(builder & b)
@@ -705,4 +707,67 @@ TEST_CASE("different builder")
     CHECK(not result.a);
     REQUIRE(result.b);
     CHECK(*result.b == 42);
+}
+
+TEST_CASE("move data from sub builders")
+{
+    struct s
+    {
+        pid::vector<pid::string> items;
+    };
+
+    struct parent
+    {
+        pid::vector<pid::ptr<s>> children;
+    };
+
+    builder b;
+
+    constexpr auto children_count{1000};
+    constexpr auto item_count{1000};
+
+    {
+        auto offset_parent{b.add<parent>()};
+        offset_parent->children = b.add_vector<pid::ptr<s>, std::uint32_t>(children_count);
+
+        std::mutex mutex;
+
+        auto build_data = [&](std::size_t struct_index) {
+            builder sub_builder;
+
+            auto offset_s{sub_builder.add<s>()};
+            offset_s->items = sub_builder.add_vector<pid::string, std::uint32_t>(item_count);
+
+            for (std::size_t index{0}; index < children_count; ++index) {
+                offset_s->items[index] = sub_builder.add_string(
+                    "child " + std::to_string(struct_index) + ", item " + std::to_string(index));
+            }
+
+            std::lock_guard lock{mutex};
+            auto mover = b.add_sub_builder(sub_builder);
+
+            offset_parent->children[struct_index] = mover(offset_s);
+        };
+
+        std::vector<std::jthread> threads;
+        for (std::size_t child_index{0}; child_index < children_count; ++child_index) {
+            threads.emplace_back(build_data, child_index);
+        }
+    }
+
+    const auto data{move_builder_data(b)};
+    const auto & result{as<parent>(data)};
+
+    REQUIRE(result.children.size() == children_count);
+    for (std::size_t child_index{0}; child_index < children_count; ++child_index) {
+        const auto & child{result.children[child_index]};
+        REQUIRE(child);
+        REQUIRE(child->items.size() == item_count);
+        for (std::size_t item_index{0}; item_index < item_count; ++item_index) {
+            CHECK(
+                child->items[item_index]
+                == "child " + std::to_string(child_index) + ", item "
+                       + std::to_string(item_index));
+        }
+    }
 }
