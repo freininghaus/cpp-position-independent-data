@@ -206,6 +206,115 @@ TEST_CASE("strings")
     CHECK(std::string{"123"} < s_1234);
 }
 
+TEST_CASE("string comparisons")
+{
+    struct S
+    {
+        pid::string a1;
+        pid::string a2;
+        pid64::string32 a3;
+        pid32::string16 a4;
+
+        pid::string b;
+    };
+
+    builder my_builder;
+
+    {
+        builder_offset<S> offset = my_builder.add<S>();
+        offset->a1 = my_builder.add_string("a");
+        offset->a2 = my_builder.add_string("a");
+        offset->a3 = my_builder.add_string("a");
+        offset->a4 = my_builder.add_string<std::uint16_t>("a");
+        offset->b = my_builder.add_string("b");
+    }
+
+    const auto data{move_builder_data(my_builder)};
+    const S & s{as<S>(data)};
+
+    CHECK(s.a1 == s.a2);
+    CHECK(s.a2 == s.a1);
+    CHECK(s.a1 == s.a3);
+    CHECK(s.a3 == s.a1);
+    CHECK(s.a1 == s.a4);
+    CHECK(s.a4 == s.a1);
+    CHECK(s.a2 == s.a3);
+    CHECK(s.a3 == s.a2);
+    CHECK(s.a2 == s.a4);
+    CHECK(s.a4 == s.a2);
+    CHECK(s.a3 == s.a4);
+    CHECK(s.a4 == s.a3);
+
+    const std::string_view a{"a"};
+
+    CHECK(s.a1 == a);
+    CHECK(a == s.a1);
+    CHECK(s.a2 == a);
+    CHECK(a == s.a2);
+    CHECK(s.a3 == a);
+    CHECK(a == s.a3);
+
+    const std::string a_s{"a"};
+
+    CHECK(s.a1 == a_s);
+    CHECK(a_s == s.a1);
+    CHECK(s.a2 == a_s);
+    CHECK(a_s == s.a2);
+    CHECK(s.a3 == a_s);
+    CHECK(a_s == s.a3);
+
+    CHECK(s.a1 == "a");
+    CHECK("a" == s.a1);
+    CHECK(s.a2 == "a");
+    CHECK("a" == s.a2);
+    CHECK(s.a3 == "a");
+    CHECK("a" == s.a3);
+
+    CHECK(s.b != a);
+    CHECK(a != s.b);
+
+    CHECK(s.b != a_s);
+    CHECK(a_s != s.b);
+
+    CHECK(s.b != "a");
+    CHECK("a" != s.b);
+
+    CHECK(s.a1 < "b");
+    CHECK("b" > s.a1);
+    CHECK(s.a2 < "b");
+    CHECK("b" > s.a2);
+    CHECK(s.a3 < "b");
+    CHECK("b" > s.a3);
+
+    CHECK(s.a1 < s.b);
+    CHECK(s.b > s.a1);
+    CHECK(s.a2 < s.b);
+    CHECK(s.b > s.a2);
+    CHECK(s.a3 < s.b);
+    CHECK(s.b > s.a3);
+
+    CHECK(s.a1 <= "b");
+    CHECK("b" >= s.a1);
+    CHECK(s.a2 <= "b");
+    CHECK("b" >= s.a2);
+    CHECK(s.a3 <= "b");
+    CHECK("b" >= s.a3);
+
+    CHECK(s.a1 <= s.b);
+    CHECK(s.b >= s.a1);
+    CHECK(s.a2 <= s.b);
+    CHECK(s.b >= s.a2);
+    CHECK(s.a3 <= s.b);
+    CHECK(s.b >= s.a3);
+
+    CHECK(a < s.b);
+    CHECK(s.b > a);
+    CHECK(a_s < s.b);
+    CHECK(s.b > a_s);
+    CHECK("a" < s.b);
+    CHECK(s.b > "a");
+}
+
 TEST_CASE("vector of ints")
 {
     using ItemType = std::int8_t;
