@@ -6,7 +6,7 @@ namespace pid {
     template <typename Key, typename Value, typename SizeType>
     struct generic_map_builder;
 
-    struct builder_offset_mover;
+    struct builder_ptr_translator;
 
     struct builder
     {
@@ -91,7 +91,7 @@ namespace pid {
             return MapBuilderType{items};
         }
 
-        struct builder_offset_mover
+        struct builder_ptr_translator
         {
             builder & destination;
             const builder & source;
@@ -116,13 +116,13 @@ namespace pid {
 
         // By default, we assume that the data in 'other' needs 64-bit alignment.
         template <typename AlignmentType = std::uint64_t>
-        builder_offset_mover add_sub_builder(const builder & other)
+        builder_ptr_translator add_sub_builder(const builder & other)
         {
             const auto offset{next_offset<AlignmentType>()};
             _data.resize(offset + other._data.size());
             std::memcpy(_data.data() + offset, other.data().data(), other.data().size());
 
-            return builder_offset_mover{*this, other, offset};
+            return builder_ptr_translator{*this, other, offset};
         }
 
         template <typename T>

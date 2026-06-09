@@ -750,9 +750,9 @@ TEST_CASE("move data from sub builders")
             }
 
             std::lock_guard lock{mutex};
-            auto mover = b.add_sub_builder(sub_builder);
+            auto translator = b.add_sub_builder(sub_builder);
 
-            offset_parent->children[struct_index] = mover(offset_s);
+            offset_parent->children[struct_index] = translator(offset_s);
         };
 
         std::vector<std::jthread> threads;
