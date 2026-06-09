@@ -21,9 +21,10 @@ namespace pid {
 
             ptr() : offset{0} {}
 
-            ptr(const struct ptr &) = delete;
-
-            ptr(struct ptr &&) = delete;
+            // Delete copy and move constructors to prevent accidental creation of a ptr with a
+            // stale offset
+            ptr(const ptr &) = delete;
+            ptr(ptr &&) = delete;
 
             ptr(builder_offset<T> p)
             {
@@ -80,7 +81,8 @@ namespace pid {
         struct generic_string_data
         {
             SizeType string_length;
-            char data[];
+            char data[];  // flexible array members are a C99 feature, but supported by all major
+                          // C++ compilers
 
             generic_string_data(const generic_string_data &) = delete;
 
@@ -180,7 +182,8 @@ namespace pid {
             using iterator = const_iterator;
 
             SizeType vector_length;
-            T items[];
+            T items[];  // flexible array members are a C99 feature, but supported by all major C++
+                        // compilers
 
             generic_vector_data(const generic_vector_data &) = delete;
 
@@ -203,6 +206,9 @@ namespace pid {
 
             T & operator[](SizeType index)
             {
+                // std::vector does not do any range checks, and neither does the const operator[].
+                // During construction of pid objects, we try hard to detect bugs, so we are
+                // intentionally inconsistent here.
                 if (index >= 0 and index < vector_length) {
                     return items[index];
                 } else {
