@@ -4,7 +4,7 @@
 
 namespace pid {
     template <typename Key, typename Value, typename SizeType>
-    struct generic_map_builder;
+    struct map_builder;
 
     struct builder_ptr_translator;
 
@@ -81,9 +81,9 @@ namespace pid {
         }
 
         template <typename Key, typename Value, typename SizeType>
-        generic_map_builder<Key, Value, SizeType> add_map(SizeType size)
+        map_builder<Key, Value, SizeType> add_map(SizeType size)
         {
-            using MapBuilderType = generic_map_builder<Key, Value, SizeType>;
+            using MapBuilderType = map_builder<Key, Value, SizeType>;
             using ItemType = typename MapBuilderType::ItemType;
             using VectorDataType = typename MapBuilderType::VectorDataType;
 
@@ -202,7 +202,7 @@ namespace pid {
     };
 
     template <typename Key, typename Value, typename SizeType>
-    struct generic_map_builder
+    struct map_builder
     {
         using ItemType = std::pair<Key, Value>;
         using VectorDataType = detail::generic_vector_data<ItemType, SizeType>;
