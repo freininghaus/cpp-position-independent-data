@@ -10,7 +10,7 @@
 
 namespace pid {
     template <typename T>
-    struct builder_offset;
+    struct builder_ptr;
 
     namespace detail {
         template <typename T, typename offset_type>
@@ -26,13 +26,13 @@ namespace pid {
             ptr(const ptr &) = delete;
             ptr(ptr &&) = delete;
 
-            ptr(builder_offset<T> p)
+            ptr(builder_ptr<T> p)
             {
                 // required for initialization of std::optional<ptr<T>> with '='
                 *this = p;
             }
 
-            auto & operator=(builder_offset<T> p)
+            auto & operator=(builder_ptr<T> p)
             {
                 p.assign_to(*this);
                 return *this;
@@ -117,14 +117,14 @@ namespace pid {
 
             generic_string(generic_string &&) = delete;
 
-            generic_string(builder_offset<generic_string_data<SizeType>> p)
+            generic_string(builder_ptr<generic_string_data<SizeType>> p)
             {
                 // required for initialization of std::optional<generic_string<OffsetType,
                 // SizeType>> with '='
                 *this = p;
             }
 
-            auto & operator=(builder_offset<generic_string_data<SizeType>> p)
+            auto & operator=(builder_ptr<generic_string_data<SizeType>> p)
             {
                 p.assign_to(data);
                 return *this;
@@ -238,14 +238,14 @@ namespace pid {
 
             generic_vector(generic_vector &&) = delete;
 
-            generic_vector(builder_offset<generic_vector_data<T, SizeType>> p)
+            generic_vector(builder_ptr<generic_vector_data<T, SizeType>> p)
             {
                 // required for initialization of std::optional<generic_vector<OffsetType,
                 // SizeType>> with '='
                 *this = p;
             }
 
-            auto & operator=(builder_offset<generic_vector_data<T, SizeType>> p)
+            auto & operator=(builder_ptr<generic_vector_data<T, SizeType>> p)
             {
                 p.assign_to(data);
                 return *this;
@@ -304,7 +304,7 @@ namespace pid {
             VectorType items;
 
         public:
-            auto & operator=(builder_offset<generic_vector_data<ItemType, SizeType>> p)
+            auto & operator=(builder_ptr<generic_vector_data<ItemType, SizeType>> p)
             {
                 items = p;
                 return *this;

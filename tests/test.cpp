@@ -42,7 +42,7 @@ TEST_CASE("plain old data")
     builder b;
 
     {
-        builder_offset<std::int32_t> offset{b.add<std::int32_t>()};
+        builder_ptr<std::int32_t> offset{b.add<std::int32_t>()};
         *offset = 42;
     }
 
@@ -66,7 +66,7 @@ TEST_CASE("struct with plain old data members")
     builder b;
 
     {
-        builder_offset<pod> offset{b.add<pod>()};
+        builder_ptr<pod> offset{b.add<pod>()};
         offset->b = true;
         offset->i = 4711;
         offset->x = -1.5;
@@ -105,9 +105,9 @@ TEST_CASE("nested struct")
     builder b;
 
     {
-        builder_offset<line> offset_l{b.add<line>()};
-        builder_offset<point> offset_p1{b.add<point>()};
-        builder_offset<point> offset_p2{b.add<point>()};
+        builder_ptr<line> offset_l{b.add<line>()};
+        builder_ptr<point> offset_p1{b.add<point>()};
+        builder_ptr<point> offset_p2{b.add<point>()};
 
         offset_p1->x = 3;
         offset_p1->y = 5;
@@ -156,7 +156,7 @@ TEST_CASE("strings")
     builder b;
 
     {
-        builder_offset<StringArray> offset_array = b.add<StringArray>();
+        builder_ptr<StringArray> offset_array = b.add<StringArray>();
         (*offset_array)[0] = b.add_string("");
         (*offset_array)[1] = b.add_string("a");
         (*offset_array)[2] = b.add_string("1234");
@@ -229,7 +229,7 @@ TEST_CASE("string comparisons")
     builder my_builder;
 
     {
-        builder_offset<S> offset = my_builder.add<S>();
+        builder_ptr<S> offset = my_builder.add<S>();
         offset->a1 = my_builder.add_string("a");
         offset->a2 = my_builder.add_string("a");
         offset->a3 = my_builder.add_string("a");
@@ -335,7 +335,7 @@ TEST_CASE("vector of ints")
     builder b;
 
     {
-        builder_offset<test> t = b.add<test>();
+        builder_ptr<test> t = b.add<test>();
 
         // TODO: it would be nice if we could omit the SizeType argument (std::uint32_t) here, but
         // then we either have
@@ -493,7 +493,7 @@ TEST_CASE("alignment")
     };
 
     {
-        builder_offset<test> t{b.add<test>()};
+        builder_ptr<test> t{b.add<test>()};
 
         auto u8 = b.add<std::uint8_t>();
         t->u8 = u8;
@@ -610,7 +610,7 @@ TEST_CASE("struct with optionals")
     };
 
     {
-        builder_offset<test> t{b.add<test>()};
+        builder_ptr<test> t{b.add<test>()};
 
         // This does not work because the address of t->s2 is determined before "foo" is added,
         // which triggers a resizing of the buffer:
@@ -659,18 +659,18 @@ TEST_CASE("offset overflow")
     builder b;
 
     {
-        builder_offset<s> offset_s{b.add<s>()};
+        builder_ptr<s> offset_s{b.add<s>()};
 
         // offsets up to i = 30 fit into an std::int8_t
         for (std::int32_t i{0}; i < 31; ++i) {
-            builder_offset<std::int32_t> offset_int32{b.add<std::int32_t>()};
+            builder_ptr<std::int32_t> offset_int32{b.add<std::int32_t>()};
             *offset_int32 = i;
             offset_s->a = offset_int32;
         }
 
         // offset 31 does not fit into an std::int8_t
         {
-            builder_offset<std::int32_t> offset_int32{b.add<std::int32_t>()};
+            builder_ptr<std::int32_t> offset_int32{b.add<std::int32_t>()};
             *offset_int32 = 31;
             CHECK_THROWS_AS(offset_s->a = offset_int32, std::out_of_range);
         }
@@ -694,12 +694,12 @@ TEST_CASE("different builder")
     builder b2;
 
     {
-        builder_offset<s> offset_s{b1.add<s>()};
+        builder_ptr<s> offset_s{b1.add<s>()};
 
-        builder_offset<std::int32_t> incompatible_offset{b2.add<std::int32_t>()};
+        builder_ptr<std::int32_t> incompatible_offset{b2.add<std::int32_t>()};
         *incompatible_offset = 41;
 
-        builder_offset<std::int32_t> compatible_offset{b1.add<std::int32_t>()};
+        builder_ptr<std::int32_t> compatible_offset{b1.add<std::int32_t>()};
         *compatible_offset = 42;
 
         CHECK_THROWS_AS(offset_s->a = incompatible_offset, std::invalid_argument);

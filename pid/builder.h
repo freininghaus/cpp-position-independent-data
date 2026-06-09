@@ -26,7 +26,7 @@ namespace pid {
 
     public:
         template <typename T>
-        builder_offset<T> convert_to_builder_offset(T * p)
+        builder_ptr<T> convert_to_builder_offset(T * p)
         {
             auto c{reinterpret_cast<const char *>(p)};
             if (c < data().data() or c > data().data() + data().size()) {
@@ -51,7 +51,7 @@ namespace pid {
         }
 
         template <typename T>
-        builder_offset<T> add(std::size_t extra_bytes = 0)
+        builder_ptr<T> add(std::size_t extra_bytes = 0)
         {
             const auto offset{next_offset<T>()};
             _data.resize(offset + sizeof(T) + extra_bytes);
@@ -59,7 +59,7 @@ namespace pid {
         }
 
         template <typename SizeType = std::uint32_t>
-        builder_offset<detail::generic_string_data<SizeType>> add_string(std::string_view s)
+        builder_ptr<detail::generic_string_data<SizeType>> add_string(std::string_view s)
         {
             const auto size{s.size()};
             auto result{add<detail::generic_string_data<SizeType>>(
@@ -72,7 +72,7 @@ namespace pid {
         }
 
         template <typename T, typename SizeType>
-        builder_offset<detail::generic_vector_data<T, SizeType>> add_vector(SizeType size)
+        builder_ptr<detail::generic_vector_data<T, SizeType>> add_vector(SizeType size)
         {
             auto result{add<detail::generic_vector_data<T, SizeType>>(size * sizeof(T))};
             result->vector_length = size;
@@ -87,7 +87,7 @@ namespace pid {
             using ItemType = typename MapBuilderType::ItemType;
             using VectorDataType = typename MapBuilderType::VectorDataType;
 
-            const builder_offset<VectorDataType> items{add_vector<ItemType, SizeType>(size)};
+            const builder_ptr<VectorDataType> items{add_vector<ItemType, SizeType>(size)};
             return MapBuilderType{items};
         }
 
@@ -99,7 +99,7 @@ namespace pid {
             const std::size_t additional_offset;
 
             template <typename T>
-            builder_offset<T> operator()(const builder_offset<T> & source_offset) const
+            builder_ptr<T> operator()(const builder_ptr<T> & source_offset) const
             {
                 if (&source_offset.b != &source) {
                     throw std::invalid_argument{
@@ -126,29 +126,26 @@ namespace pid {
         }
 
         template <typename T>
-        friend struct builder_offset;
+        friend struct builder_ptr;
     };
 
     template <typename T>
-    struct builder_offset
+    struct builder_ptr
     {
         builder & b;
         const std::size_t offset;
         const bool valid;
 
-        builder_offset(builder & b) : b{b}, offset{0}, valid{false} {}
+        builder_ptr(builder & b) : b{b}, offset{0}, valid{false} {}
 
-        builder_offset(builder & b, std::size_t offset) : b{b}, offset{offset}, valid{true} {}
+        builder_ptr(builder & b, std::size_t offset) : b{b}, offset{offset}, valid{true} {}
 
-        builder_offset(const builder_offset & other)
+        builder_ptr(const builder_ptr & other)
             : b{other.b}, offset{other.offset}, valid{other.valid}
         {
         }
 
-        builder_offset(builder_offset && other)
-            : b{other.b}, offset{other.offset}, valid{other.valid}
-        {
-        }
+        builder_ptr(builder_ptr && other) : b{other.b}, offset{other.offset}, valid{other.valid} {}
 
         explicit operator bool() const
         {
@@ -210,15 +207,15 @@ namespace pid {
         using ItemType = std::pair<Key, Value>;
         using VectorDataType = detail::generic_vector_data<ItemType, SizeType>;
 
-        builder_offset<VectorDataType> items;
+        builder_ptr<VectorDataType> items;
         SizeType current_size{0};
 
-        builder_offset<detail::generic_vector_data<ItemType, SizeType>> offset() const
+        builder_ptr<detail::generic_vector_data<ItemType, SizeType>> offset() const
         {
             return {items.b, items.offset};
         }
 
-        builder_offset<Value> add_key(const Key & key)
+        builder_ptr<Value> add_key(const Key & key)
         {
             if (current_size == items->size()) {
                 throw std::out_of_range{"map is full"};
@@ -238,7 +235,7 @@ namespace pid {
         }
 
         template <typename Pointer>
-        builder_offset<Value> add_key(Pointer p)
+        builder_ptr<Value> add_key(Pointer p)
         {
             if (current_size == items->size()) {
                 throw std::out_of_range{"map is full"};
