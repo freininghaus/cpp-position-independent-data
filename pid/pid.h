@@ -66,8 +66,8 @@ namespace pid {
             template <typename Pointer>
             const Pointer get() const
             {
-                return reinterpret_cast<const Pointer>(
-                    reinterpret_cast<const char *>(this) + offset);
+                return std::launder(reinterpret_cast<const Pointer>(
+                    reinterpret_cast<const char *>(this) + offset));
             }
 
             template <typename Pointer>
