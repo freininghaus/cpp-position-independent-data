@@ -38,9 +38,8 @@ namespace pid {
             const std::size_t current_ptr{
                 reinterpret_cast<const std::size_t>(data.data()) + data.size()};
             constexpr std::size_t alignment{alignof(T)};
-            constexpr std::size_t alignment_mask{
-                std::numeric_limits<std::size_t>::max() << (alignment - 1)};
-            const std::size_t padding{(alignment - (current_ptr & ~alignment_mask)) % alignment};
+            const std::size_t padding{(alignment - (current_ptr % alignment)) % alignment};
+
             return data.size() + padding;
         }
 
