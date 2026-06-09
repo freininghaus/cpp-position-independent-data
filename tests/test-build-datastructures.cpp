@@ -56,7 +56,7 @@ auto build_helper(const T & value)
     using ResultType = std::remove_reference<decltype(*result)>::type;
 
     const auto offset{result.offset};
-    std::vector<char> data{std::move(builder.data)};
+    std::vector<char> data{builder.data()};
 
     const auto & reference{reinterpret_cast<const ResultType *>(data.data() + offset)};
 

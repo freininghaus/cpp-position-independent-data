@@ -16,18 +16,25 @@ namespace pid {
 
         builder(builder &&) = delete;
 
-        std::vector<char> data;
+        const std::vector<char> & data() const
+        {
+            return _data;
+        }
 
+    private:
+        std::vector<char> _data;
+
+    public:
         template <typename T>
         builder_offset<T> convert_to_builder_offset(T * p)
         {
             auto c{reinterpret_cast<const char *>(p)};
-            if (c < data.data() or c > data.data() + data.size()) {
+            if (c < data().data() or c > data().data() + data().size()) {
                 throw std::out_of_range{"Pointer does not point to builder data"};
             }
 
             const std::size_t offset{
-                static_cast<std::size_t>(reinterpret_cast<char *>(p) - data.data())};
+                static_cast<std::size_t>(reinterpret_cast<char *>(p) - data().data())};
 
             return {*this, offset};
         }
@@ -36,18 +43,18 @@ namespace pid {
         std::size_t next_offset() const
         {
             const std::size_t current_ptr{
-                reinterpret_cast<const std::size_t>(data.data()) + data.size()};
+                reinterpret_cast<const std::size_t>(data().data()) + data().size()};
             constexpr std::size_t alignment{alignof(T)};
             const std::size_t padding{(alignment - (current_ptr % alignment)) % alignment};
 
-            return data.size() + padding;
+            return data().size() + padding;
         }
 
         template <typename T>
         builder_offset<T> add(std::size_t extra_bytes = 0)
         {
             const auto offset{next_offset<T>()};
-            data.resize(offset + sizeof(T) + extra_bytes);
+            _data.resize(offset + sizeof(T) + extra_bytes);
             return {*this, offset};
         }
 
@@ -112,11 +119,14 @@ namespace pid {
         builder_offset_mover add_sub_builder(const builder & other)
         {
             const auto offset{next_offset<AlignmentType>()};
-            data.resize(offset + other.data.size());
-            std::memcpy(data.data() + offset, other.data.data(), other.data.size());
+            _data.resize(offset + other._data.size());
+            std::memcpy(_data.data() + offset, other.data().data(), other.data().size());
 
             return builder_offset_mover{*this, other, offset};
         }
+
+        template <typename T>
+        friend struct builder_offset;
     };
 
     template <typename T>
@@ -152,8 +162,8 @@ namespace pid {
                 const char * dest_position{reinterpret_cast<const char *>(&dest)};
 
                 {
-                    const char * builder_data_start{b.data.data()};
-                    const char * builder_data_end{b.data.data() + b.data.size()};
+                    const char * builder_data_start{b.data().data()};
+                    const char * builder_data_end{b.data().data() + b.data().size()};
 
                     if (dest_position < builder_data_start or dest_position >= builder_data_end) {
                         throw std::invalid_argument{
@@ -185,12 +195,12 @@ namespace pid {
 
         T * operator->()
         {
-            return reinterpret_cast<T *>(b.data.data() + offset);
+            return std::launder(reinterpret_cast<T *>(b._data.data() + offset));
         }
 
         const T * operator->() const
         {
-            return reinterpret_cast<const T *>(b.data.data() + offset);
+            return std::launder(reinterpret_cast<const T *>(b.data().data() + offset));
         }
     };
 

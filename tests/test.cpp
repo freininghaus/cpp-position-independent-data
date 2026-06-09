@@ -13,14 +13,20 @@ using namespace pid;
 
 std::vector<char> move_builder_data(builder & b)
 {
-    const char * p1{b.data.data()};
-    std::vector<char> result{b.data};
+    // We move the data to another position in memory to make sure that the position-independent
+    // offsets work as expected.
+    const char * p1{b.data().data()};
+    std::vector<char> result{b.data()};
 
     const char * p2{result.data()};
 
     REQUIRE(p1 != p2);
 
-    std::fill(b.data.begin(), b.data.end(), 0xff);
+    // Overwrite data of the original builder to prevent that broken tests pass accidentally if
+    // they do not compare to the copied data at all.
+    const auto begin{const_cast<char *>(p1)};
+    const auto end{begin + b.data().size()};
+    std::fill(begin, end, 0xff);
 
     return result;
 }
