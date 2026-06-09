@@ -414,7 +414,8 @@ using pid32 = pid::pid_types<std::int32_t>;
 using pid64 = pid::pid_types<std::int64_t>;
 
 namespace pid {
-    // Convenience typedefs for types with 32 bit offsets and 32 bit container sizes
+    // Convenience typedefs for types with 32 bit offsets and 32 bit container sizes for usage with
+    // blobs up to 2 GiB
     template <typename T>
     using ptr = pid32::ptr<T>;
 
