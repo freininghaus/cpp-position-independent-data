@@ -370,143 +370,48 @@ namespace pid {
         template <typename Key, typename Value>
         using map32 = generic_map<Key, Value, std::int32_t, std::uint32_t>;
     }
+
+    template <typename OffsetType>
+    struct pid_types
+    {
+        template <typename T>
+        using ptr = detail::ptr<T, OffsetType>;
+
+        using string8 = detail::generic_string<OffsetType, std::uint8_t>;
+        using string16 = detail::generic_string<OffsetType, std::uint16_t>;
+        using string32 = detail::generic_string<OffsetType, std::uint32_t>;
+        using string64 = detail::generic_string<OffsetType, std::uint64_t>;
+
+        template <typename T>
+        using vector8 = detail::generic_vector<T, OffsetType, std::uint8_t>;
+
+        template <typename T>
+        using vector16 = detail::generic_vector<T, OffsetType, std::uint16_t>;
+
+        template <typename T>
+        using vector32 = detail::generic_vector<T, OffsetType, std::uint32_t>;
+
+        template <typename T>
+        using vector64 = detail::generic_vector<T, OffsetType, std::uint64_t>;
+
+        template <typename Key, typename Value>
+        using map8 = detail::generic_map<Key, Value, OffsetType, std::uint8_t>;
+
+        template <typename Key, typename Value>
+        using map16 = detail::generic_map<Key, Value, OffsetType, std::uint16_t>;
+
+        template <typename Key, typename Value>
+        using map32 = detail::generic_map<Key, Value, OffsetType, std::uint32_t>;
+
+        template <typename Key, typename Value>
+        using map64 = detail::generic_map<Key, Value, OffsetType, std::uint64_t>;
+    };
 }
 
-namespace pid8 {
-    template <typename T>
-    using ptr = pid::detail::ptr<T, std::int8_t>;
-
-    using string8 = pid::detail::generic_string<std::int8_t, std::uint8_t>;
-    using string16 = pid::detail::generic_string<std::int8_t, std::uint16_t>;
-    using string32 = pid::detail::generic_string<std::int8_t, std::uint32_t>;
-    using string64 = pid::detail::generic_string<std::int8_t, std::uint64_t>;
-
-    template <typename T>
-    using vector8 = pid::detail::generic_vector<T, std::int8_t, std::uint8_t>;
-
-    template <typename T>
-    using vector16 = pid::detail::generic_vector<T, std::int8_t, std::uint16_t>;
-
-    template <typename T>
-    using vector32 = pid::detail::generic_vector<T, std::int8_t, std::uint32_t>;
-
-    template <typename T>
-    using vector64 = pid::detail::generic_vector<T, std::int8_t, std::uint64_t>;
-
-    template <typename Key, typename Value>
-    using map8 = pid::detail::generic_map<Key, Value, std::int8_t, std::uint8_t>;
-
-    template <typename Key, typename Value>
-    using map16 = pid::detail::generic_map<Key, Value, std::int8_t, std::uint16_t>;
-
-    template <typename Key, typename Value>
-    using map32 = pid::detail::generic_map<Key, Value, std::int8_t, std::uint32_t>;
-
-    template <typename Key, typename Value>
-    using map64 = pid::detail::generic_map<Key, Value, std::int8_t, std::uint64_t>;
-}
-
-namespace pid16 {
-    template <typename T>
-    using ptr = pid::detail::ptr<T, std::int16_t>;
-
-    using string8 = pid::detail::generic_string<std::int16_t, std::uint8_t>;
-    using string16 = pid::detail::generic_string<std::int16_t, std::uint16_t>;
-    using string32 = pid::detail::generic_string<std::int16_t, std::uint32_t>;
-    using string64 = pid::detail::generic_string<std::int16_t, std::uint64_t>;
-
-    template <typename T>
-    using vector8 = pid::detail::generic_vector<T, std::int16_t, std::uint8_t>;
-
-    template <typename T>
-    using vector16 = pid::detail::generic_vector<T, std::int16_t, std::uint16_t>;
-
-    template <typename T>
-    using vector32 = pid::detail::generic_vector<T, std::int16_t, std::uint32_t>;
-
-    template <typename T>
-    using vector64 = pid::detail::generic_vector<T, std::int16_t, std::uint64_t>;
-
-    template <typename Key, typename Value>
-    using map8 = pid::detail::generic_map<Key, Value, std::int16_t, std::uint8_t>;
-
-    template <typename Key, typename Value>
-    using map16 = pid::detail::generic_map<Key, Value, std::int16_t, std::uint16_t>;
-
-    template <typename Key, typename Value>
-    using map32 = pid::detail::generic_map<Key, Value, std::int16_t, std::uint32_t>;
-
-    template <typename Key, typename Value>
-    using map64 = pid::detail::generic_map<Key, Value, std::int16_t, std::uint64_t>;
-}
-
-namespace pid32 {
-    template <typename T>
-    using ptr = pid::detail::ptr<T, std::int32_t>;
-
-    using string8 = pid::detail::generic_string<std::int32_t, std::uint8_t>;
-    using string16 = pid::detail::generic_string<std::int32_t, std::uint16_t>;
-    using string32 = pid::detail::generic_string<std::int32_t, std::uint32_t>;
-    using string64 = pid::detail::generic_string<std::int32_t, std::uint64_t>;
-
-    template <typename T>
-    using vector8 = pid::detail::generic_vector<T, std::int32_t, std::uint8_t>;
-
-    template <typename T>
-    using vector16 = pid::detail::generic_vector<T, std::int32_t, std::uint16_t>;
-
-    template <typename T>
-    using vector32 = pid::detail::generic_vector<T, std::int32_t, std::uint32_t>;
-
-    template <typename T>
-    using vector64 = pid::detail::generic_vector<T, std::int32_t, std::uint64_t>;
-
-    template <typename Key, typename Value>
-    using map8 = pid::detail::generic_map<Key, Value, std::int32_t, std::uint8_t>;
-
-    template <typename Key, typename Value>
-    using map16 = pid::detail::generic_map<Key, Value, std::int32_t, std::uint16_t>;
-
-    template <typename Key, typename Value>
-    using map32 = pid::detail::generic_map<Key, Value, std::int32_t, std::uint32_t>;
-
-    template <typename Key, typename Value>
-    using map64 = pid::detail::generic_map<Key, Value, std::int32_t, std::uint64_t>;
-}
-
-namespace pid64 {
-    template <typename T>
-    using ptr = pid::detail::ptr<T, std::int64_t>;
-
-    using string8 = pid::detail::generic_string<std::int64_t, std::uint8_t>;
-    using string16 = pid::detail::generic_string<std::int64_t, std::uint16_t>;
-    using string32 = pid::detail::generic_string<std::int64_t, std::uint32_t>;
-    using string64 = pid::detail::generic_string<std::int64_t, std::uint64_t>;
-
-    template <typename T>
-    using vector8 = pid::detail::generic_vector<T, std::int64_t, std::uint8_t>;
-
-    template <typename T>
-    using vector16 = pid::detail::generic_vector<T, std::int64_t, std::uint16_t>;
-
-    template <typename T>
-    using vector32 = pid::detail::generic_vector<T, std::int64_t, std::uint32_t>;
-
-    template <typename T>
-    using vector64 = pid::detail::generic_vector<T, std::int64_t, std::uint64_t>;
-
-    template <typename Key, typename Value>
-    using map8 = pid::detail::generic_map<Key, Value, std::int64_t, std::uint8_t>;
-
-    template <typename Key, typename Value>
-    using map16 = pid::detail::generic_map<Key, Value, std::int64_t, std::uint16_t>;
-
-    template <typename Key, typename Value>
-    using map32 = pid::detail::generic_map<Key, Value, std::int64_t, std::uint32_t>;
-
-    template <typename Key, typename Value>
-    using map64 = pid::detail::generic_map<Key, Value, std::int64_t, std::uint64_t>;
-}
+using pid8 = pid::pid_types<std::int8_t>;
+using pid16 = pid::pid_types<std::int16_t>;
+using pid32 = pid::pid_types<std::int32_t>;
+using pid64 = pid::pid_types<std::int64_t>;
 
 namespace pid {
     // Convenience typedefs for types with 32 bit offsets and 32 bit container sizes
